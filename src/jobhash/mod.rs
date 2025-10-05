@@ -2,7 +2,7 @@ use anyhow::Result;
 use colored::*;
 use regex::Regex;
 use sha2::{Digest, Sha256};
-use std::{collections::BTreeMap, fs};
+use std::{collections::BTreeMap, fs, path::Path};
 use walkdir::WalkDir;
 
 pub fn run() -> Result<()> {
@@ -56,24 +56,7 @@ pub fn run() -> Result<()> {
                 .map(|m| m.as_str().to_string());
 
             if let Some(class_name) = class_name {
-                let module_name = path
-                    .ancestors()
-                    .find_map(|p| {
-                        if p.join("module.ts").exists() {
-                            p.file_name().and_then(|n| n.to_str()).map(String::from)
-                        } else {
-                            None
-                        }
-                    })
-                    .or_else(|| {
-                        path.parent()
-                            .and_then(|p| p.parent())
-                            .and_then(|p| p.file_name())
-                            .and_then(|n| n.to_str())
-                            .map(String::from)
-                    })
-                    .unwrap_or_else(|| "unknown".to_string());
-
+                let module_name = detect_module_name(path).unwrap_or_else(|| "unknown".to_string());
                 let input = format!("{module_name}:{class_name}");
                 let mut hasher = Sha256::new();
                 hasher.update(input.as_bytes());
@@ -146,4 +129,18 @@ pub fn run() -> Result<()> {
     );
 
     Ok(())
+}
+
+fn detect_module_name(path: &Path) -> Option<String> {
+    let path = path.canonicalize().ok()?;
+    let components: Vec<String> = path
+        .components()
+        .map(|c| c.as_os_str().to_string_lossy().into_owned())
+        .collect();
+
+    if let Some(src_index) = components.iter().position(|c| c == "src") {
+        return components.get(src_index + 1).cloned();
+    }
+
+    None
 }

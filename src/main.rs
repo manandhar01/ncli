@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use colored::*;
-use std::path::Path;
+use std::{path::Path, process::Command};
 
 mod entityhash;
 mod jobhash;
@@ -46,6 +46,32 @@ fn main() -> Result<()> {
         Commands::All => {
             entityhash::run()?;
             jobhash::run()?;
+        }
+    }
+
+    println!("{}", "→ Running formatter (npm run format)...".cyan());
+    let status = Command::new("npm").arg("run").arg("format").status();
+
+    match status {
+        Ok(s) if s.success() => {
+            println!(
+                "\n{}\n",
+                "✔ Formatting completed successfully.".green().bold()
+            );
+        }
+        Ok(s) => {
+            eprintln!(
+                "\n{} (exit code: {})\n",
+                "✖ Formatting failed.".red().bold(),
+                s.code().unwrap_or(-1)
+            );
+        }
+        Err(e) => {
+            eprintln!(
+                "\n{} {}\n",
+                "✖ Failed to run npm formatter:".red().bold(),
+                e
+            );
         }
     }
 
