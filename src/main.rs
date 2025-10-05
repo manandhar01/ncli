@@ -4,6 +4,7 @@ use colored::*;
 use std::path::Path;
 
 mod entityhash;
+mod jobhash;
 
 #[derive(Parser)]
 #[command(name = "ncli")]
@@ -16,6 +17,8 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     EntityHash,
+    JobHash,
+    All,
 }
 
 fn is_nest_project_root(path: &Path) -> bool {
@@ -39,6 +42,11 @@ fn main() -> Result<()> {
 
     match cli.command {
         Commands::EntityHash => entityhash::run()?,
+        Commands::JobHash => jobhash::run()?,
+        Commands::All => {
+            entityhash::run()?;
+            jobhash::run()?;
+        }
     }
 
     Ok(())

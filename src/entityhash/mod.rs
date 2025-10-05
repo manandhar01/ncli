@@ -79,7 +79,7 @@ pub fn run() -> Result<()> {
         fs::create_dir_all(&config_dir)?;
     }
 
-    let mut ts_content = String::from("// Auto-generated file. Do not edit manually. \n");
+    let mut ts_content = String::from("// Auto-generated file. Do not edit manually.\n\n");
     ts_content.push_str("export const entityHash = {\n");
 
     for (class, hash) in &hashes {
