@@ -5,7 +5,6 @@ use std::{path::Path, process::Command};
 
 mod entity_hash;
 mod job_hash;
-mod sync_module_components;
 
 #[derive(Parser)]
 #[command(name = "ncli")]
@@ -45,8 +44,6 @@ fn main() -> Result<()> {
         Commands::EntityHash => entity_hash::run()?,
         Commands::JobHash => job_hash::run()?,
         Commands::All => {
-            entityhash::run()?;
-            jobhash::run()?;
             entity_hash::run()?;
             job_hash::run()?;
         }
