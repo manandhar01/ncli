@@ -5,6 +5,7 @@ use std::{path::Path, process::Command};
 
 mod entity_hash;
 mod job_hash;
+mod sync_module_components;
 
 #[derive(Parser)]
 #[command(name = "ncli")]
@@ -18,6 +19,7 @@ struct Cli {
 enum Commands {
     EntityHash,
     JobHash,
+    SyncModuleComponents,
     All,
 }
 
@@ -43,9 +45,11 @@ fn main() -> Result<()> {
     match cli.command {
         Commands::EntityHash => entity_hash::run()?,
         Commands::JobHash => job_hash::run()?,
+        Commands::SyncModuleComponents => sync_module_components::run()?,
         Commands::All => {
             entity_hash::run()?;
             job_hash::run()?;
+            sync_module_components::run()?;
         }
     }
 
