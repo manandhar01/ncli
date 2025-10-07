@@ -3,8 +3,9 @@ use clap::{Parser, Subcommand};
 use colored::*;
 use std::{path::Path, process::Command};
 
-mod entityhash;
-mod jobhash;
+mod entity_hash;
+mod job_hash;
+mod sync_module_components;
 
 #[derive(Parser)]
 #[command(name = "ncli")]
@@ -41,11 +42,13 @@ fn main() -> Result<()> {
     }
 
     match cli.command {
-        Commands::EntityHash => entityhash::run()?,
-        Commands::JobHash => jobhash::run()?,
+        Commands::EntityHash => entity_hash::run()?,
+        Commands::JobHash => job_hash::run()?,
         Commands::All => {
             entityhash::run()?;
             jobhash::run()?;
+            entity_hash::run()?;
+            job_hash::run()?;
         }
     }
 

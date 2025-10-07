@@ -28,7 +28,7 @@ pub fn run() -> Result<()> {
 
     let re_class = Regex::new(r#"export\s+class\s+(\w+)"#)?;
     let re_super = Regex::new(r#"super\s*\("#)?;
-    let re_has_super_arg = Regex::new(r#"super\s*\(['"]([^'"]+)['"]\)"#)?;
+    let re_has_super_arg = Regex::new(r#"super\s*\([^)]*\)"#)?;
 
     for entry in WalkDir::new(&src_path).into_iter().filter_map(|e| e.ok()) {
         let path = entry.path();
