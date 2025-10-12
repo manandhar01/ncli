@@ -1,0 +1,59 @@
+@Controller('')
+export class {{ControllerName}}Controller {
+    constructor(private readonly {{controller_var}}Service: {{ControllerName}}Service) {}
+
+    @Post('search')
+    search(@Body() body: {{EntityName}}ListFilterDto) {
+        return new Process{{EntityName}}List().process(body);
+    }
+
+    @Post('find')
+    find(@Body() body: {{EntityName}}FindDto) {
+        const config: FindConfigOptionsDto<{{EntityName}}Entity> = {
+            searchableColumns: [],
+            orderBy: '',
+            orderDirection: '',
+            columns: [],
+        };
+
+        return new ProcessCommonFind({{EntityName}}Entity, config).process(body);
+    }
+
+    @Post()
+    create(@Body() body: Add{{EntityName}}Dto) {
+        return new Process{{EntityName}}Data().process(body);
+    }
+
+    @UseInterceptors(ClassSerializerInterceptor)
+    @Get(':id')
+    async show(@Param() params: ParamDto) {
+        const record = await {{EntityName}}Entity.first(params.id, {
+            relations: [],
+        });
+
+        if (!record) throw new UnauthorizedException();
+
+        return record;
+    }
+
+    @Patch(':id/activate')
+    @UseInterceptors(ClassSerializerInterceptor)
+    async activate(@Param() params: ParamDto) {
+        return this.{{controller_var}}Service.updateActiveStatus(params.id, true);
+    }
+
+    @Patch(':id/deactivate')
+    @UseInterceptors(ClassSerializerInterceptor)
+    async deactivate(@Param() params: ParamDto) {
+        return this.{{controller_var}}Service.updateActiveStatus(params.id, false);
+    }
+
+    @UseInterceptors(ClassSerializerInterceptor)
+    @Delete(':id')
+    async remove(@Param() params: ParamDto) {
+        const record = await {{EntityName}}Entity.first(params.id);
+        if (!record) throw new UnauthorizedException();
+
+        return record.softDelete();
+    }
+}

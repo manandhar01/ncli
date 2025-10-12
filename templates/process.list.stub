@@ -1,0 +1,22 @@
+export class Process{{ListingName}}List extends ProcessCommonList<{{EntityName}}Entity> {
+    protected entity: new () => {{EntityName}}Entity = {{EntityName}}Entity;
+    protected payload: {{ListingName}}ListFilterDto;
+
+    protected config: ListConfigOptionsDto<{{EntityName}}Entity> = {
+        searchableColumns: [],
+        orderBy: '',
+        orderDirection: '',
+    };
+
+    async process(payload: {{EntityName}}ListFilterDto) {
+        this.payload = { ...payload };
+
+        this.processFilters();
+
+        return this.handle();
+    }
+
+    private processFilters() {
+        this.filterKeyword();
+    }
+}

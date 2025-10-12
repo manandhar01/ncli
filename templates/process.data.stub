@@ -1,0 +1,21 @@
+export class Process{{ProcessorName}}Data {
+    private payload: Add{{EntityName}}Dto;
+
+    async process(payload: Add{{EntityName}}Dto) {
+        this.payload = payload;
+
+        await this.validate();
+
+        return this.create();
+    }
+
+    private async create() {
+        let record = {{EntityName}}Entity.create();
+        if (this.payload.id) record = await {{EntityName}}Entity.first(this.payload.id);
+        if (!record) throw new UnauthorizedException();
+
+        return record.save();
+    }
+
+    private async validate() {}
+}

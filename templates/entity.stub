@@ -1,0 +1,3 @@
+@Entity('{{TableName}}')
+export class {{EntityName}}Entity extends CommonEntity {}
+ 

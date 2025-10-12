@@ -1,0 +1,10 @@
+const { controllers, entities, jobs, services, strategies, subscribers } =
+    {{ModuleName}}ModuleComponents;
+
+@Module({
+    imports: [TypeOrmModule.forFeature(entities)],
+    providers: [...jobs, ...services, ...strategies, ...subscribers],
+    exports: [TypeOrmModule, ...jobs, ...services],
+    controllers,
+})
+export class {{ModuleVar}}Module {}
