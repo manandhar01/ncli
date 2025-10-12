@@ -29,22 +29,17 @@ pub fn capitalize_first(s: &str) -> String {
     }
 }
 
-pub fn get_file_name(controller_name: &str) -> String {
+pub fn get_file_name(name: &str) -> String {
     let mut result = String::new();
-    let mut chars = controller_name.chars().peekable();
 
-    while let Some(c) = chars.next() {
-        if c.is_uppercase() && !result.is_empty() {
-            result.push('.');
-            result.push(c.to_lowercase().next().unwrap());
-        } else {
-            result.push(c.to_lowercase().next().unwrap());
-        }
-
-        if let Some(&next) = chars.peek() {
-            if next.is_uppercase() {
-                continue;
+    for (i, c) in name.chars().enumerate() {
+        if c.is_uppercase() {
+            if i != 0 {
+                result.push('.');
             }
+            result.extend(c.to_lowercase());
+        } else {
+            result.push(c);
         }
     }
 
