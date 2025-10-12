@@ -1,0 +1,15 @@
+@EventSubscriber()
+export class {{SubscriberName}}Subscriber extends CommonSubscriber<{{EntityName}}Entity> {
+    constructor(
+        protected readonly clsService: ClsService,
+        protected readonly dataSource: DataSource,
+        protected readonly entityJob: {{EntityName}}Job,
+    ) {
+        super(clsService);
+        dataSource.subscribers.push(this);
+    }
+
+    listenTo() {
+        return {{EntityName}}Entity;
+    }
+}

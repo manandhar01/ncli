@@ -1,0 +1,10 @@
+@Injectable()
+export class {{JobName}}Job extends CommonJob {
+    constructor(protected readonly queueService: QueueService) {
+        super('');
+    }
+
+    async handle(data: any) {
+        return data;
+    }
+}

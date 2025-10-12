@@ -1,0 +1,6 @@
+export class Add{{DtoName}}Dto {
+    @Expose()
+    @IsOptional()
+    @IsNumber()
+    id?: number;
+}
