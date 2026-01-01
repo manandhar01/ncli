@@ -10,7 +10,7 @@ export class {{SubscriberName}}Subscriber extends CommonSubscriber<{{EntityName}
         protected readonly dataSource: DataSource,
         protected readonly entityJob: {{EntityName}}Job,
     ) {
-        super(clsService);
+        super(auth);
         dataSource.subscribers.push(this);
     }
 
