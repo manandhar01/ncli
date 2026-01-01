@@ -1,7 +1,12 @@
+import { DataSource, EventSubscriber } from 'typeorm';
+import { CommonSubscriber } from '../../common/libraries/common.subscriber';
+import { Auth } from '../../common/services/auth';
+
+
 @EventSubscriber()
 export class {{SubscriberName}}Subscriber extends CommonSubscriber<{{EntityName}}Entity> {
     constructor(
-        protected readonly clsService: ClsService,
+        protected readonly auth: Auth,
         protected readonly dataSource: DataSource,
         protected readonly entityJob: {{EntityName}}Job,
     ) {

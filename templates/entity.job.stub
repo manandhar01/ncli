@@ -1,3 +1,8 @@
+import { Injectable } from '@nestjs/common';
+import { DatabaseEventDto } from '../../common/dtos/database.event.dto';
+import { CommonJob } from '../../common/libraries/common.job';
+import { QueueService } from '../../common/services/queue.service';
+
 @Injectable()
 export class {{JobName}}Job extends CommonJob {
     constructor(protected readonly queueService: QueueService) {

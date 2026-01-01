@@ -1,3 +1,7 @@
+import { ListConfigOptionsDto } from '../../common/dtos/list.config.options.dto';
+import { ProcessCommonList } from '../../common/libraries/process.common.list';
+
+
 export class Process{{ListingName}}List extends ProcessCommonList<{{EntityName}}Entity> {
     protected entity: new () => {{EntityName}}Entity = {{EntityName}}Entity;
     protected payload: {{ListingName}}ListFilterDto;
@@ -8,7 +12,12 @@ export class Process{{ListingName}}List extends ProcessCommonList<{{EntityName}}
         orderDirection: '',
     };
 
+    constructor(private readonly business: BusinessEntity) {
+        super();
+    }
+
     async process(payload: {{EntityName}}ListFilterDto) {
+        this.where = { ...this.where, business_id: this.business.id };
         this.payload = { ...payload };
 
         this.processFilters();

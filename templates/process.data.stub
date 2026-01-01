@@ -1,5 +1,12 @@
-export class Process{{ProcessorName}}Data {
-    private payload: Add{{EntityName}}Dto;
+import { ProcessCommonData } from '../../common/libraries/process.common.data';
+
+
+export class Process{{ProcessorName}}Data extends ProcessCommonData {
+    protected payload: Add{{EntityName}}Dto;
+
+    constructor(private readonly business: BusinessEntity) {
+        super();
+    }
 
     async process(payload: Add{{EntityName}}Dto) {
         this.payload = payload;
@@ -12,10 +19,12 @@ export class Process{{ProcessorName}}Data {
     private async create() {
         let record = {{EntityName}}Entity.create();
         if (this.payload.id) record = await {{EntityName}}Entity.first(this.payload.id);
-        if (!record) throw new UnauthorizedException();
+        if (record?.business_id !== this.business.id) throw new UnauthorizedException();
 
         return record.save();
     }
 
-    private async validate() {}
+    private async validate() {
+        this.throwExceptionOnError()
+    }
 }

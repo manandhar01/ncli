@@ -1,3 +1,7 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+
+
 const { controllers, entities, jobs, services, strategies, subscribers } =
     {{ModuleName}}ModuleComponents;
 

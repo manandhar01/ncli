@@ -1,37 +1,63 @@
+import {
+    Body,
+    ClassSerializerInterceptor,
+    Controller,
+    Delete,
+    Get,
+    Param,
+    Patch,
+    Post,
+    UnauthorizedException,
+    UseInterceptors,
+} from '@nestjs/common';
+import { FindConfigOptionsDto } from '../../common/dtos/find.config.options.dto';
+import { ProcessCommonFind } from '../../common/libraries/process.common.find';
+
 @Controller('')
 export class {{ControllerName}}Controller {
-    constructor(private readonly {{controller_var}}Service: {{ControllerName}}Service) {}
+    constructor(
+        private readonly {{controller_var}}Service: {{ControllerName}}Service,
+        private readonly businessAccessService: BusinessAccessService
+    ) {}
 
     @Post('search')
-    search(@Body() body: {{EntityName}}ListFilterDto) {
-        return new Process{{EntityName}}List().process(body);
+    async search(@Body() body: {{EntityName}}ListFilterDto) {
+        const business = await this.businessAccessService.validateAccess();
+
+        return new Process{{EntityName}}List(business).process(body);
     }
 
     @Post('find')
-    find(@Body() body: {{EntityName}}FindDto) {
+    async find(@Body() body: {{EntityName}}FindDto) {
+        const business = await this.businessAccessService.validateAccess();
+
         const config: FindConfigOptionsDto<{{EntityName}}Entity> = {
             searchableColumns: [],
             orderBy: '',
             orderDirection: '',
             columns: [],
+            where: { business_id: business.id },
         };
 
         return new ProcessCommonFind({{EntityName}}Entity, config).process(body);
     }
 
     @Post()
-    create(@Body() body: Add{{EntityName}}Dto) {
-        return new Process{{EntityName}}Data().process(body);
+    async create(@Body() body: Add{{EntityName}}Dto) {
+        const business = await this.businessAccessService.validateAccess();
+
+        return new Process{{EntityName}}Data(business).process(body);
     }
 
     @UseInterceptors(ClassSerializerInterceptor)
     @Get(':id')
     async show(@Param() params: ParamDto) {
+        const business = await this.businessAccessService.validateAccess();
+
         const record = await {{EntityName}}Entity.first(params.id, {
             relations: [],
         });
-
-        if (!record) throw new UnauthorizedException();
+        if (record?.business_id !== business.id) throw new UnauthorizedException();
 
         return record;
     }
@@ -39,20 +65,26 @@ export class {{ControllerName}}Controller {
     @Patch(':id/activate')
     @UseInterceptors(ClassSerializerInterceptor)
     async activate(@Param() params: ParamDto) {
-        return this.{{controller_var}}Service.updateActiveStatus(params.id, true);
+        const business = await this.businessAccessService.validateAccess();
+
+        return this.{{controller_var}}Service.updateActiveStatus(params.id, business.id, true);
     }
 
     @Patch(':id/deactivate')
     @UseInterceptors(ClassSerializerInterceptor)
     async deactivate(@Param() params: ParamDto) {
-        return this.{{controller_var}}Service.updateActiveStatus(params.id, false);
+        const business = await this.businessAccessService.validateAccess();
+
+        return this.{{controller_var}}Service.updateActiveStatus(params.id, business.id, false);
     }
 
     @UseInterceptors(ClassSerializerInterceptor)
     @Delete(':id')
     async remove(@Param() params: ParamDto) {
+        const business = await this.businessAccessService.validateAccess();
+
         const record = await {{EntityName}}Entity.first(params.id);
-        if (!record) throw new UnauthorizedException();
+        if (record?.business_id !== business.id) throw new UnauthorizedException();
 
         return record.softDelete();
     }
