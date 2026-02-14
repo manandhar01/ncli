@@ -7,7 +7,7 @@ readme = "README.md"
 license = "MIT"
 repository = "https://github.com/manandhar01/ncli"
 categories = ["command-line-utilities", "development-tools", "code-generation"]
-keywords = ["nestjs", "cli", "code generation", "project management"]
+keywords = ["nestjs", "cli", "code-generation", "project-management"]
 homepage = "https://github.com/manandhar01/ncli"
 
 [dependencies]
