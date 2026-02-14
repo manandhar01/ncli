@@ -35,7 +35,7 @@ fn main() -> Result<()> {
     }
 
     commands::format::run_formatter();
+    commands::lint::run_lint();
 
     Ok(())
 }
-
