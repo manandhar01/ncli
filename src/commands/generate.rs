@@ -3,6 +3,7 @@ use crate::generator::{
     controller, dto, entity, job, listing, module, processor, service, subscriber, utility::prompt,
 };
 use anyhow::Result;
+use colored::*;
 
 pub fn handle(cmd: GenerateCommand) -> Result<()> {
     match cmd.target {
@@ -17,20 +18,67 @@ pub fn handle(cmd: GenerateCommand) -> Result<()> {
         GenerateTarget::Subscriber => subscriber::run(None, None, None)?,
         GenerateTarget::All => {
             let table_name = prompt("Enter table name:")?;
+            if table_name.trim().is_empty() {
+                eprintln!(
+                    "\n{}\n",
+                    "✖ Error: Table name is a mandatory field.".red().bold()
+                );
+                std::process::exit(1);
+            }
             let entity_name = prompt("Enter entity name:")?;
+            if entity_name.trim().is_empty() {
+                eprintln!(
+                    "\n{}\n",
+                    "✖ Error: Entity name is a mandatory field.".red().bold()
+                );
+                std::process::exit(1);
+            }
             let module_name = prompt("Enter module name:")?;
+            if module_name.trim().is_empty() {
+                eprintln!(
+                    "\n{}\n",
+                    "✖ Error: Module name is a mandatory field.".red().bold()
+                );
+                std::process::exit(1);
+            }
+
+            let generate_controller = {
+                let input = prompt("Generate controller? (Y/n):")?;
+                input.trim().is_empty() || input.trim().eq_ignore_ascii_case("y")
+            };
+
+            let mut generate_listing = true;
+            let mut generate_processor = true;
+            if generate_controller {
+                let input = prompt("Generate listing? (Y/n):")?;
+                generate_listing =
+                    input.trim().is_empty() || input.trim().eq_ignore_ascii_case("y");
+
+                let input = prompt("Generate processor? (Y/n):")?;
+                generate_processor =
+                    input.trim().is_empty() || input.trim().eq_ignore_ascii_case("y");
+            }
 
             module::run(Some(&module_name))?;
-            controller::run(Some(&entity_name), Some(&entity_name), Some(&module_name))?;
-            dto::run(Some(&entity_name), Some(&module_name), Some("list.filter"))?;
-            dto::run(Some(&entity_name), Some(&module_name), Some("find"))?;
-            dto::run(Some(&entity_name), Some(&module_name), Some("add"))?;
             entity::run(Some(&table_name), Some(&entity_name), Some(&module_name))?;
             job::run(Some(&entity_name), Some(&module_name), Some(&entity_name))?;
-            listing::run(Some(&entity_name), Some(&entity_name), Some(&module_name))?;
-            processor::run(Some(&entity_name), Some(&entity_name), Some(&module_name))?;
-            service::run(Some(&entity_name), Some(&entity_name), Some(&module_name))?;
             subscriber::run(Some(&entity_name), Some(&entity_name), Some(&module_name))?;
+
+            if generate_controller {
+                controller::run(Some(&entity_name), Some(&entity_name), Some(&module_name))?;
+                dto::run(Some(&entity_name), Some(&module_name), Some("find"))?;
+                service::run(Some(&entity_name), Some(&entity_name), Some(&module_name))?;
+
+                if generate_listing {
+                    dto::run(Some(&entity_name), Some(&module_name), Some("list.filter"))?;
+                    listing::run(Some(&entity_name), Some(&entity_name), Some(&module_name))?;
+                }
+
+                if generate_processor {
+                    dto::run(Some(&entity_name), Some(&module_name), Some("add"))?;
+                    processor::run(Some(&entity_name), Some(&entity_name), Some(&module_name))?;
+                }
+            }
         }
     }
     Ok(())
