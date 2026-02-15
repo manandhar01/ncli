@@ -86,7 +86,7 @@ pub fn run() -> Result<()> {
         ts_content.push_str(&format!("    {class}: \"{hash}\",\n"));
     }
 
-    ts_content.push_str("} as const;\n");
+    ts_content.push_str("};\n");
 
     fs::write(&output_file, ts_content)?;
     println!(

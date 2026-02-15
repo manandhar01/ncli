@@ -66,6 +66,7 @@ Sync a specific resource:
 ncli sync entities
 ncli sync jobs
 ncli sync components
+ncli sync column-mappings
 ```
 
 Default target: `all`
@@ -108,6 +109,7 @@ consistency.
 - `entities`
 - `jobs`
 - `components`
+- `column-mappings`
 - `all` (default)
 
 ---
