@@ -52,6 +52,9 @@ pub enum SyncTarget {
     #[value(help = "Sync module components")]
     Components,
 
+    #[value(help = "Sync column mappings for entities")]
+    ColumnMappings,
+
     #[value(help = "Sync all supported resource types")]
     All,
 }
