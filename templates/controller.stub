@@ -51,7 +51,7 @@ export class {{ControllerName}}Controller {
 
     @UseInterceptors(ClassSerializerInterceptor)
     @Get(':id')
-    async show(@Param() params: ParamDto) {
+    async show(@Param() params: CommonParamDto) {
         const business = await this.businessAccessService.validateAccess();
 
         const record = await {{EntityName}}Entity.first(params.id, {
@@ -64,7 +64,7 @@ export class {{ControllerName}}Controller {
 
     @Patch(':id/activate')
     @UseInterceptors(ClassSerializerInterceptor)
-    async activate(@Param() params: ParamDto) {
+    async activate(@Param() params: CommonParamDto) {
         const business = await this.businessAccessService.validateAccess();
 
         return this.{{controller_var}}Service.updateActiveStatus(params.id, business.id, true);
@@ -72,7 +72,7 @@ export class {{ControllerName}}Controller {
 
     @Patch(':id/deactivate')
     @UseInterceptors(ClassSerializerInterceptor)
-    async deactivate(@Param() params: ParamDto) {
+    async deactivate(@Param() params: CommonParamDto) {
         const business = await this.businessAccessService.validateAccess();
 
         return this.{{controller_var}}Service.updateActiveStatus(params.id, business.id, false);
@@ -80,7 +80,7 @@ export class {{ControllerName}}Controller {
 
     @UseInterceptors(ClassSerializerInterceptor)
     @Delete(':id')
-    async remove(@Param() params: ParamDto) {
+    async remove(@Param() params: CommonParamDto) {
         const business = await this.businessAccessService.validateAccess();
 
         const record = await {{EntityName}}Entity.first(params.id);
