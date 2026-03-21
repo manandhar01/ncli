@@ -17,15 +17,11 @@ export class Process{{ListingName}}List extends ProcessCommonList<{{EntityName}}
     }
 
     async process(payload: {{EntityName}}ListFilterDto) {
-        this.where = { ...this.where, business_id: this.business.id };
         this.payload = { ...payload };
-
-        this.processFilters();
-
         return this.handle();
     }
 
-    private processFilters() {
-        this.filterKeyword();
+    protected applyCustomFilters(qb: SelectQueryBuilder<{{EntityName}}Entity>) {
+        qb.andWhere('entity.businessId = :businessId', { businessId: this.business.id });
     }
 }
