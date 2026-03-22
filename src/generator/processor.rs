@@ -8,11 +8,14 @@ use crate::generator::{
 };
 
 const PROCESSOR_STUB: &str = include_str!("../../templates/process.data.stub");
+const BUSINESS_PROCESSOR_STUB: &str = include_str!("../../templates/business.process.data.stub");
+const USER_PROCESSOR_STUB: &str = include_str!("../../templates/user.process.data.stub");
 
 pub fn run(
     processor_name: Option<&str>,
     entity_name: Option<&str>,
     module_name: Option<&str>,
+    entity_type: Option<&str>,
 ) -> Result<()> {
     let processor_name = match processor_name {
         Some(name) if !name.is_empty() => name.to_string(),
@@ -26,6 +29,22 @@ pub fn run(
         Some(name) if !name.is_empty() => name.to_string(),
         _ => prompt("Enter module name:")?,
     };
+    let entity_type = match entity_type {
+        Some(t) if !t.is_empty() => t.to_string(),
+        _ => {
+            let input = prompt(
+                "Select entity type to generate:\n1) Business specific\n2) User specific\n3) Both (default)\nEnter choice (1/2/3):",
+            )?;
+
+            let entity_type = match input.trim() {
+                "1" => "business",
+                "2" => "user",
+                "3" => "both",
+                _ => "both",
+            };
+            entity_type.to_string()
+        }
+    };
 
     let cwd =
         std::env::current_dir().with_context(|| "Failed to get current working directory".red())?;
@@ -33,9 +52,31 @@ pub fn run(
 
     module::run(Some(&module_name))?;
 
-    let processor_file_name = get_file_name(&processor_name);
-    let processor_dir = src_path.join(&module_name).join("libraries");
-    let processor_file = processor_dir.join(format!("process.{processor_file_name}.data.ts"));
+    let types = if entity_type == "both" {
+        vec!["business.", "user."]
+    } else {
+        vec![""]
+    };
+
+    for t in types {
+        generate_processor(&processor_name, &entity_name, &module_name, t, &src_path)?;
+    }
+
+    Ok(())
+}
+
+fn generate_processor(
+    processor_name: &str,
+    entity_name: &str,
+    module_name: &str,
+    entity_type: &str,
+    src_path: &std::path::Path,
+) -> Result<()> {
+    let processor_file_name = get_file_name(processor_name);
+    let processor_dir = src_path.join(module_name).join("libraries");
+    let processor_file = processor_dir.join(format!(
+        "process.{entity_type}{processor_file_name}.data.ts"
+    ));
 
     if processor_file.exists() {
         return Ok(());
@@ -49,9 +90,15 @@ pub fn run(
         .red()
     })?;
 
-    let content = PROCESSOR_STUB
-        .replace("{{ProcessorName}}", &processor_name)
-        .replace("{{EntityName}}", &entity_name);
+    let template = match entity_type {
+        "business." => BUSINESS_PROCESSOR_STUB,
+        "user." => USER_PROCESSOR_STUB,
+        _ => PROCESSOR_STUB,
+    };
+
+    let content = template
+        .replace("{{ProcessorName}}", processor_name)
+        .replace("{{EntityName}}", entity_name);
 
     fs::write(&processor_file, content).with_context(|| {
         format!(

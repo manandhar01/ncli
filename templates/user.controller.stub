@@ -1,0 +1,91 @@
+import {
+    Body,
+    ClassSerializerInterceptor,
+    Controller,
+    Delete,
+    Get,
+    Param,
+    Patch,
+    Post,
+    UnauthorizedException,
+    UseInterceptors,
+} from '@nestjs/common';
+import { FindConfigOptionsDto } from '../../common/dtos/find.config.options.dto';
+import { ProcessCommonFind } from '../../common/libraries/process.common.find';
+
+@Controller('')
+export class User{{ControllerName}}Controller {
+    constructor(
+        private readonly user{{ControllerName}}Service: User{{ControllerName}}Service,
+        private readonly ownerAccessService: OwnerAccessService
+    ) {}
+
+    @Post('search')
+    async search(@Body() body: User{{EntityName}}ListFilterDto) {
+        const owner = await this.ownerAccessService.validateAccess();
+
+        return new ProcessUser{{EntityName}}List(owner).process(body);
+    }
+
+    @Post('find')
+    async find(@Body() body: User{{EntityName}}FindDto) {
+        const owner = await this.ownerAccessService.validateAccess();
+
+        const config: FindConfigOptionsDto<{{EntityName}}Entity> = {
+            searchableColumns: [],
+            orderBy: '',
+            orderDirection: '',
+            columns: [],
+            where: { owner_id: owner.id },
+        };
+
+        return new ProcessCommonFind({{EntityName}}Entity, config).process(body);
+    }
+
+    @Post()
+    async create(@Body() body: AddUser{{EntityName}}Dto) {
+        const owner = await this.ownerAccessService.validateAccess();
+
+        return new ProcessUser{{EntityName}}Data(owner).process(body);
+    }
+
+    @UseInterceptors(ClassSerializerInterceptor)
+    @Get(':id')
+    async show(@Param() params: CommonParamDto) {
+        const owner = await this.ownerAccessService.validateAccess();
+
+        const record = await {{EntityName}}Entity.first(params.id, {
+            relations: ['owner'],
+        });
+        if (record?.owner_id !== owner.id) throw new UnauthorizedException();
+
+        return record;
+    }
+
+    @Patch(':id/activate')
+    @UseInterceptors(ClassSerializerInterceptor)
+    async activate(@Param() params: CommonParamDto) {
+        const owner = await this.ownerAccessService.validateAccess();
+
+        return this.user{{ControllerName}}Service.updateActiveStatus(params.id, owner.id, true);
+    }
+
+    @Patch(':id/deactivate')
+    @UseInterceptors(ClassSerializerInterceptor)
+    async deactivate(@Param() params: CommonParamDto) {
+        const owner = await this.ownerAccessService.validateAccess();
+
+        return this.user{{ControllerName}}Service.updateActiveStatus(params.id, owner.id, false);
+    }
+
+    @UseInterceptors(ClassSerializerInterceptor)
+    @Delete(':id')
+    async remove(@Param() params: CommonParamDto) {
+        const owner = await this.ownerAccessService.validateAccess();
+
+        const record = await {{EntityName}}Entity.first(params.id);
+        if (record?.owner_id !== owner.id) throw new UnauthorizedException();
+
+        return record.softDelete();
+    }
+}

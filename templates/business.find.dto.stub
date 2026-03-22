@@ -1,0 +1,3 @@
+import { CommonFindDto } from '../../common/dtos/common.find.dto';
+
+export class Business{{DtoName}}FindDto extends CommonFindDto {}

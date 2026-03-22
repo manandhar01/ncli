@@ -1,0 +1,91 @@
+import {
+    Body,
+    ClassSerializerInterceptor,
+    Controller,
+    Delete,
+    Get,
+    Param,
+    Patch,
+    Post,
+    UnauthorizedException,
+    UseInterceptors,
+} from '@nestjs/common';
+import { FindConfigOptionsDto } from '../../common/dtos/find.config.options.dto';
+import { ProcessCommonFind } from '../../common/libraries/process.common.find';
+
+@Controller('')
+export class Business{{ControllerName}}Controller {
+    constructor(
+        private readonly business{{ControllerName}}Service: Business{{ControllerName}}Service,
+        private readonly businessAccessService: BusinessAccessService
+    ) {}
+
+    @Post('search')
+    async search(@Body() body: Business{{EntityName}}ListFilterDto) {
+        const business = await this.businessAccessService.validateAccess();
+
+        return new ProcessBusiness{{EntityName}}List(business).process(body);
+    }
+
+    @Post('find')
+    async find(@Body() body: Business{{EntityName}}FindDto) {
+        const business = await this.businessAccessService.validateAccess();
+
+        const config: FindConfigOptionsDto<{{EntityName}}Entity> = {
+            searchableColumns: [],
+            orderBy: '',
+            orderDirection: '',
+            columns: [],
+            where: { business_id: business.id },
+        };
+
+        return new ProcessCommonFind({{EntityName}}Entity, config).process(body);
+    }
+
+    @Post()
+    async create(@Body() body: AddBusiness{{EntityName}}Dto) {
+        const business = await this.businessAccessService.validateAccess();
+
+        return new ProcessBusiness{{EntityName}}Data(business).process(body);
+    }
+
+    @UseInterceptors(ClassSerializerInterceptor)
+    @Get(':id')
+    async show(@Param() params: CommonParamDto) {
+        const business = await this.businessAccessService.validateAccess();
+
+        const record = await {{EntityName}}Entity.first(params.id, {
+            relations: [],
+        });
+        if (record?.business_id !== business.id) throw new UnauthorizedException();
+
+        return record;
+    }
+
+    @Patch(':id/activate')
+    @UseInterceptors(ClassSerializerInterceptor)
+    async activate(@Param() params: CommonParamDto) {
+        const business = await this.businessAccessService.validateAccess();
+
+        return this.business{{ControllerName}}Service.updateActiveStatus(params.id, business.id, true);
+    }
+
+    @Patch(':id/deactivate')
+    @UseInterceptors(ClassSerializerInterceptor)
+    async deactivate(@Param() params: CommonParamDto) {
+        const business = await this.businessAccessService.validateAccess();
+
+        return this.business{{ControllerName}}Service.updateActiveStatus(params.id, business.id, false);
+    }
+
+    @UseInterceptors(ClassSerializerInterceptor)
+    @Delete(':id')
+    async remove(@Param() params: CommonParamDto) {
+        const business = await this.businessAccessService.validateAccess();
+
+        const record = await {{EntityName}}Entity.first(params.id);
+        if (record?.business_id !== business.id) throw new UnauthorizedException();
+
+        return record.softDelete();
+    }
+}

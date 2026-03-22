@@ -8,14 +8,25 @@ use crate::generator::{
 };
 
 const DTO_DEFAULT_STUB: &str = include_str!("../../templates/dto.stub");
+
 const DTO_FIND_STUB: &str = include_str!("../../templates/find.dto.stub");
+const DTO_BUSINESS_FIND_STUB: &str = include_str!("../../templates/business.find.dto.stub");
+const DTO_USER_FIND_STUB: &str = include_str!("../../templates/user.find.dto.stub");
+
 const DTO_LIST_FILTER_STUB: &str = include_str!("../../templates/list.filter.dto.stub");
+const DTO_BUSINESS_LIST_FILTER_STUB: &str =
+    include_str!("../../templates/business.list.filter.dto.stub");
+const DTO_USER_LIST_FILTER_STUB: &str = include_str!("../../templates/user.list.filter.dto.stub");
+
 const DTO_ADD_STUB: &str = include_str!("../../templates/add.dto.stub");
+const DTO_BUSINESS_ADD_STUB: &str = include_str!("../../templates/business.add.dto.stub");
+const DTO_USER_ADD_STUB: &str = include_str!("../../templates/user.add.dto.stub");
 
 pub fn run(
     dto_name: Option<&str>,
     module_name: Option<&str>,
     dto_type: Option<&str>,
+    entity_type: Option<&str>,
 ) -> Result<()> {
     let dto_name = match dto_name {
         Some(name) if !name.is_empty() => name.to_string(),
@@ -25,33 +36,72 @@ pub fn run(
         Some(name) if !name.is_empty() => name.to_string(),
         _ => prompt("Enter module name:")?,
     };
+    let dto_type = match dto_type {
+        Some(t) if !t.is_empty() => t.to_string(),
+        _ => {
+            let input = prompt(
+                "Select dto type to generate:\n1) Default (default)\n2) Find\n3) List filter\n4) Add\nEnter choice (1/2/3/4):",
+            )?;
 
+            let dto_type = match input.trim() {
+                "1" => "default",
+                "2" => "find",
+                "3" => "list.filter",
+                "4" => "add",
+                _ => "default",
+            };
+            dto_type.to_string()
+        }
+    };
+    let entity_type = match entity_type {
+        Some(t) if !t.is_empty() => t.to_string(),
+        _ => {
+            let input = prompt(
+                "Select entity type to generate:\n1) Business specific\n2) User specific\n3) Both (default)\nEnter choice (1/2/3):",
+            )?;
+
+            let entity_type = match input.trim() {
+                "1" => "business",
+                "2" => "user",
+                "3" => "both",
+                _ => "both",
+            };
+            entity_type.to_string()
+        }
+    };
     let cwd =
         std::env::current_dir().with_context(|| "Failed to get current working directory".red())?;
     let src_path = cwd.join("src");
 
     module::run(Some(&module_name))?;
 
-    let dto_file_name = get_file_name(&dto_name);
-    let dto_dir = src_path.join(&module_name).join("dtos");
+    let types = if entity_type == "both" {
+        vec!["business.", "user."]
+    } else {
+        vec![""]
+    };
 
-    let (dto_file, template) = match dto_type {
-        Some("find") => (
-            dto_dir.join(format!("{dto_file_name}.find.dto.ts")),
-            DTO_FIND_STUB,
-        ),
-        Some("list.filter") => (
-            dto_dir.join(format!("{dto_file_name}.list.filter.dto.ts")),
-            DTO_LIST_FILTER_STUB,
-        ),
-        Some("add") => (
-            dto_dir.join(format!("add.{dto_file_name}.dto.ts")),
-            DTO_ADD_STUB,
-        ),
-        _ => (
-            dto_dir.join(format!("{dto_file_name}.dto.ts")),
-            DTO_DEFAULT_STUB,
-        ),
+    for t in types {
+        generate_dto(&dto_name, &module_name, &dto_type, t, &src_path)?;
+    }
+
+    Ok(())
+}
+
+fn generate_dto(
+    dto_name: &str,
+    module_name: &str,
+    dto_type: &str,
+    entity_type: &str,
+    src_path: &std::path::Path,
+) -> Result<()> {
+    let dto_file_name = get_file_name(dto_name);
+    let dto_dir = src_path.join(module_name).join("dtos");
+    let dto_file = match dto_type {
+        "find" => dto_dir.join(format!("{entity_type}{dto_file_name}.find.dto.ts")),
+        "list.filter" => dto_dir.join(format!("{entity_type}{dto_file_name}.list.filter.dto.ts")),
+        "add" => dto_dir.join(format!("add.{entity_type}{dto_file_name}.dto.ts")),
+        _ => dto_dir.join(format!("{entity_type}{dto_file_name}.dto.ts")),
     };
 
     if dto_file.exists() {
@@ -66,7 +116,20 @@ pub fn run(
         .red()
     })?;
 
-    let content = template.replace("{{DtoName}}", &dto_name);
+    let template = match (dto_type, entity_type) {
+        ("find", "business.") => DTO_BUSINESS_FIND_STUB,
+        ("find", "user.") => DTO_USER_FIND_STUB,
+        ("find", _) => DTO_FIND_STUB,
+        ("list.filter", "business.") => DTO_BUSINESS_LIST_FILTER_STUB,
+        ("list.filter", "user.") => DTO_USER_LIST_FILTER_STUB,
+        ("list.filter", _) => DTO_LIST_FILTER_STUB,
+        ("add", "business.") => DTO_BUSINESS_ADD_STUB,
+        ("add", "user.") => DTO_USER_ADD_STUB,
+        ("add", _) => DTO_ADD_STUB,
+        _ => DTO_DEFAULT_STUB,
+    };
+
+    let content = template.replace("{{DtoName}}", dto_name);
 
     fs::write(&dto_file, content).with_context(|| {
         format!(

@@ -1,0 +1,3 @@
+import { CommonListFilterDto } from '../../common/dtos/common.list.filter.dto';
+
+export class User{{DtoName}}ListFilterDto extends CommonListFilterDto {}

@@ -1,0 +1,40 @@
+import { ProcessCommonData } from '../../common/libraries/process.common.data';
+
+
+export class ProcessUser{{ProcessorName}}Data extends ProcessCommonData {
+    protected payload: AddUser{{EntityName}}Dto;
+
+    constructor(private readonly owner: UserEntity) {
+        super();
+    }
+
+    async process(payload: AddUser{{EntityName}}Dto) {
+        this.payload = payload;
+
+        await this.validate();
+
+        return this.create();
+    }
+
+    private async create() {
+        const record = await this.getOrCreateRecord();
+        if (record?.owner_id !== this.owner.id) throw new UnauthorizedException();
+
+        this.assignPayloadToRecord(record);
+        return record.save();
+    }
+
+    private async getOrCreateRecord() {
+        if (this.payload.id) return {{EntityName}}Entity.first(this.payload.id);
+
+        return {{EntityName}}Entity.create({
+            owner_id: this.owner.id,
+        });
+    }
+
+    private assignPayloadToRecord(record: {{EntityName}}Entity) {}
+
+    private async validate() {
+        this.throwExceptionOnError()
+    }
+}
