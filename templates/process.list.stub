@@ -22,6 +22,6 @@ export class Process{{ListingName}}List extends ProcessCommonList<{{EntityName}}
     }
 
     protected applyCustomFilters(qb: SelectQueryBuilder<{{EntityName}}Entity>) {
-        qb.andWhere('entity.businessId = :businessId', { businessId: this.business.id });
+        qb.andWhere('entity.business_id = :business_id', { business_id: this.business.id });
     }
 }
