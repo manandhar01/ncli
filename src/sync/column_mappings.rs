@@ -27,7 +27,7 @@ pub fn run() -> Result<()> {
     let re_class = Regex::new(r#"export\s+class\s+(\w+)"#)?;
     let re_extends_common = Regex::new(r#"export\s+class\s+\w+\s+extends\s+CommonEntity"#)?;
     let re_column = Regex::new(
-        r#"@(PrimaryGeneratedColumn|CreateDateColumn|UpdateDateColumn|DeleteDateColumn|Column)[^\n]*\n\s*(?:public|protected|private)?\s*([\w_]+)\s*:\s*([\w]+)"#,
+        r#"@(?:PrimaryGeneratedColumn|CreateDateColumn|UpdateDateColumn|DeleteDateColumn|Column)[\s\S]*?\)\s*\n\s*(?:public|protected|private)?\s*([\w_]+)\s*:\s*([A-Za-z0-9_<>]+)"#,
     )?;
 
     let mut common_columns: BTreeMap<String, String> = BTreeMap::new();
@@ -40,10 +40,10 @@ pub fn run() -> Result<()> {
             let content = fs::read_to_string(path)?;
 
             for cap in re_column.captures_iter(&content) {
-                let column_name = cap.get(2).unwrap().as_str();
-                let ts_type = cap.get(3).unwrap().as_str();
-
+                let column_name = cap.get(1).unwrap().as_str();
+                let ts_type = cap.get(2).unwrap().as_str();
                 let mapped_type = map_ts_type(ts_type);
+
                 common_columns.insert(column_name.to_string(), mapped_type);
             }
 
@@ -96,8 +96,8 @@ pub fn run() -> Result<()> {
                 }
 
                 for cap in re_column.captures_iter(&content) {
-                    let column_name = cap.get(2).unwrap().as_str();
-                    let ts_type = cap.get(3).unwrap().as_str();
+                    let column_name = cap.get(1).unwrap().as_str();
+                    let ts_type = cap.get(2).unwrap().as_str();
                     let mapped_type = map_ts_type(ts_type);
 
                     columns.insert(column_name.to_string(), mapped_type);
@@ -158,6 +158,7 @@ fn map_ts_type(ts_type: &str) -> String {
         "number" => "number".into(),
         "boolean" => "boolean".into(),
         "Date" => "string".into(),
+        "Decimal" => "Decimal".into(),
         _ => "any".into(),
     }
 }
