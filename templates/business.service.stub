@@ -1,0 +1,17 @@
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+
+
+@Injectable()
+export class Business{{ServiceName}}Service {
+    async updateActiveStatus(
+        id: number,
+        businessId: number,
+        is_active: boolean,
+    ): Promise<{{EntityName}}Entity> {
+        const record = await {{EntityName}}Entity.first(id);
+        if (record?.business_id !== businessId) throw new UnauthorizedException();
+
+        record.is_active = is_active;
+        return record.save();
+    }
+}

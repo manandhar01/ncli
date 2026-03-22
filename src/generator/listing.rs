@@ -8,11 +8,14 @@ use crate::generator::{
 };
 
 const LISTING_STUB: &str = include_str!("../../templates/process.list.stub");
+const BUSINESS_LISTING_STUB: &str = include_str!("../../templates/business.process.list.stub");
+const USER_LISTING_STUB: &str = include_str!("../../templates/user.process.list.stub");
 
 pub fn run(
     listing_name: Option<&str>,
     entity_name: Option<&str>,
     module_name: Option<&str>,
+    entity_type: Option<&str>,
 ) -> Result<()> {
     let listing_name = match listing_name {
         Some(name) if !name.is_empty() => name.to_string(),
@@ -26,6 +29,22 @@ pub fn run(
         Some(name) if !name.is_empty() => name.to_string(),
         _ => prompt("Enter module name:")?,
     };
+    let entity_type = match entity_type {
+        Some(t) if !t.is_empty() => t.to_string(),
+        _ => {
+            let input = prompt(
+                "Select entity type to generate:\n1) Business specific\n2) User specific\n3) Both (default)\nEnter choice (1/2/3):",
+            )?;
+
+            let entity_type = match input.trim() {
+                "1" => "business",
+                "2" => "user",
+                "3" => "both",
+                _ => "both",
+            };
+            entity_type.to_string()
+        }
+    };
 
     let cwd =
         std::env::current_dir().with_context(|| "Failed to get current working directory".red())?;
@@ -33,9 +52,30 @@ pub fn run(
 
     module::run(Some(&module_name))?;
 
-    let listing_file_name = get_file_name(&listing_name);
-    let listing_dir = src_path.join(&module_name).join("libraries");
-    let listing_file = listing_dir.join(format!("process.{listing_file_name}.list.ts"));
+    let types = if entity_type == "both" {
+        vec!["business.", "user."]
+    } else {
+        vec![""]
+    };
+
+    for t in types {
+        generate_listing(&listing_name, &entity_name, &module_name, t, &src_path)?;
+    }
+
+    Ok(())
+}
+
+fn generate_listing(
+    listing_name: &str,
+    entity_name: &str,
+    module_name: &str,
+    entity_type: &str,
+    src_path: &std::path::Path,
+) -> Result<()> {
+    let listing_file_name = get_file_name(listing_name);
+    let listing_dir = src_path.join(module_name).join("libraries");
+    let listing_file =
+        listing_dir.join(format!("process.{entity_type}{listing_file_name}.list.ts"));
 
     if listing_file.exists() {
         return Ok(());
@@ -49,13 +89,19 @@ pub fn run(
         .red()
     })?;
 
-    let content = LISTING_STUB
-        .replace("{{ListingName}}", &listing_name)
-        .replace("{{EntityName}}", &entity_name);
+    let template = match entity_type {
+        "business." => BUSINESS_LISTING_STUB,
+        "user." => USER_LISTING_STUB,
+        _ => LISTING_STUB,
+    };
+
+    let content = template
+        .replace("{{ListingName}}", listing_name)
+        .replace("{{EntityName}}", entity_name);
 
     fs::write(&listing_file, content).with_context(|| {
         format!(
-            "Failed to write lisring file at {}",
+            "Failed to write listing file at {}",
             get_relative_path(&listing_file)
         )
         .red()

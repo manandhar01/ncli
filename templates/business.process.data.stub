@@ -1,0 +1,40 @@
+import { ProcessCommonData } from '../../common/libraries/process.common.data';
+
+
+export class ProcessBusiness{{ProcessorName}}Data extends ProcessCommonData {
+    protected payload: AddBusiness{{EntityName}}Dto;
+
+    constructor(private readonly business: BusinessEntity) {
+        super();
+    }
+
+    async process(payload: AddBusiness{{EntityName}}Dto) {
+        this.payload = payload;
+
+        await this.validate();
+
+        return this.create();
+    }
+
+    private async create() {
+        const record = await this.getOrCreateRecord();
+        if (record?.business_id !== this.business.id) throw new UnauthorizedException();
+
+        this.assignPayloadToRecord(record);
+        return record.save();
+    }
+
+    private async getOrCreateRecord() {
+        if (this.payload.id) return {{EntityName}}Entity.first(this.payload.id);
+
+        return {{EntityName}}Entity.create({
+            business_id: this.business.id,
+        });
+    }
+
+    private assignPayloadToRecord(record: {{EntityName}}Entity) {}
+
+    private async validate() {
+        this.throwExceptionOnError()
+    }
+}

@@ -1,0 +1,3 @@
+import { CommonListFilterDto } from '../../common/dtos/common.list.filter.dto';
+
+export class Business{{DtoName}}ListFilterDto extends CommonListFilterDto {}

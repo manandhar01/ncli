@@ -1,0 +1,3 @@
+import { IdPayloadDto } from '../../common/dtos/id.payload.dto';
+
+export class AddBusiness{{DtoName}}Dto extends IdPayloadDto {}
