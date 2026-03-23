@@ -2,21 +2,30 @@ use core::option::Option::Some;
 
 use crate::cli::{GenerateCommand, GenerateTarget};
 use crate::generator::{
-    controller, dto, entity, job, listing, module, processor, service, subscriber, utility::prompt,
+    controller, dto, entity, job, listing, module, processor, service, subscriber,
+    utility::{prompt, DtoSpec, EntitySpec},
 };
 use anyhow::Result;
 use colored::*;
 
 pub fn handle(cmd: GenerateCommand) -> Result<()> {
     match cmd.target {
-        GenerateTarget::Controller => controller::run(None, None, None, None)?,
-        GenerateTarget::Dto => dto::run(None, None, None, None)?,
+        GenerateTarget::Controller => {
+            controller::run(None, None, EntitySpec { name: None, entity_type: None })?
+        }
+        GenerateTarget::Dto => dto::run(None, None, DtoSpec { dto_type: None, entity_type: None })?,
         GenerateTarget::Entity => entity::run(None, None, None)?,
         GenerateTarget::Job => job::run(None, None, None)?,
-        GenerateTarget::Listing => listing::run(None, None, None, None)?,
+        GenerateTarget::Listing => {
+            listing::run(None, None, EntitySpec { name: None, entity_type: None })?
+        }
         GenerateTarget::Module => module::run(None)?,
-        GenerateTarget::Processor => processor::run(None, None, None, None)?,
-        GenerateTarget::Service => service::run(None, None, None, None)?,
+        GenerateTarget::Processor => {
+            processor::run(None, None, EntitySpec { name: None, entity_type: None })?
+        }
+        GenerateTarget::Service => {
+            service::run(None, None, EntitySpec { name: None, entity_type: None })?
+        }
         GenerateTarget::Subscriber => subscriber::run(None, None, None)?,
         GenerateTarget::All => {
             let table_name = prompt("Enter table name:")?;
@@ -79,35 +88,45 @@ pub fn handle(cmd: GenerateCommand) -> Result<()> {
             if generate_controller {
                 controller::run(
                     Some(&entity_name),
-                    Some(&entity_name),
                     Some(&module_name),
-                    Some(entity_type),
+                    EntitySpec {
+                        name: Some(entity_name.clone()),
+                        entity_type: Some(entity_type.to_string()),
+                    },
                 )?;
                 dto::run(
                     Some(&entity_name),
                     Some(&module_name),
-                    Some("find"),
-                    Some(entity_type),
+                    DtoSpec {
+                        dto_type: Some("find".to_string()),
+                        entity_type: Some(entity_type.to_string()),
+                    },
                 )?;
                 service::run(
                     Some(&entity_name),
-                    Some(&entity_name),
                     Some(&module_name),
-                    Some(entity_type),
+                    EntitySpec {
+                        name: Some(entity_name.clone()),
+                        entity_type: Some(entity_type.to_string()),
+                    },
                 )?;
 
                 if generate_listing {
                     dto::run(
                         Some(&entity_name),
                         Some(&module_name),
-                        Some("list.filter"),
-                        Some(entity_type),
+                        DtoSpec {
+                            dto_type: Some("list.filter".to_string()),
+                            entity_type: Some(entity_type.to_string()),
+                        },
                     )?;
                     listing::run(
                         Some(&entity_name),
-                        Some(&entity_name),
                         Some(&module_name),
-                        Some(entity_type),
+                        EntitySpec {
+                            name: Some(entity_name.clone()),
+                            entity_type: Some(entity_type.to_string()),
+                        },
                     )?;
                 }
 
@@ -115,14 +134,18 @@ pub fn handle(cmd: GenerateCommand) -> Result<()> {
                     dto::run(
                         Some(&entity_name),
                         Some(&module_name),
-                        Some("add"),
-                        Some(entity_type),
+                        DtoSpec {
+                            dto_type: Some("add".to_string()),
+                            entity_type: Some(entity_type.to_string()),
+                        },
                     )?;
                     processor::run(
                         Some(&entity_name),
-                        Some(&entity_name),
                         Some(&module_name),
-                        Some(entity_type),
+                        EntitySpec {
+                            name: Some(entity_name.clone()),
+                            entity_type: Some(entity_type.to_string()),
+                        },
                     )?;
                 }
             }
