@@ -64,15 +64,12 @@ fn collect_all_context() -> Result<AllContext> {
     })
 }
 
+fn prompt_yes_no(msg: &str) -> Result<bool> {
+    let input = prompt(msg)?;
+    Ok(input.trim().is_empty() || input.trim().eq_ignore_ascii_case("y"))
+}
+
 fn collect_controller_options() -> Result<ControllerOptions> {
-    let generate_listing = {
-        let input = prompt("Generate listing? (Y/n):")?;
-        input.trim().is_empty() || input.trim().eq_ignore_ascii_case("y")
-    };
-    let generate_processor = {
-        let input = prompt("Generate processor? (Y/n):")?;
-        input.trim().is_empty() || input.trim().eq_ignore_ascii_case("y")
-    };
     let entity_type = {
         let input = prompt(
             "Select entity type to generate:\n1) Business specific\n2) User specific\n3) Both (default)\nEnter choice (1/2/3):",
@@ -83,7 +80,11 @@ fn collect_controller_options() -> Result<ControllerOptions> {
             _ => "both".to_string(),
         }
     };
-    Ok(ControllerOptions { generate_listing, generate_processor, entity_type })
+    Ok(ControllerOptions {
+        generate_listing: prompt_yes_no("Generate listing? (Y/n):")?,
+        generate_processor: prompt_yes_no("Generate processor? (Y/n):")?,
+        entity_type,
+    })
 }
 
 fn generate_core(ctx: &AllContext) -> Result<()> {
@@ -171,10 +172,7 @@ fn generate_controller_resources(ctx: &AllContext, opts: &ControllerOptions) -> 
 fn generate_all() -> Result<()> {
     let ctx = collect_all_context()?;
 
-    let generate_controller = {
-        let input = prompt("Generate controller? (Y/n):")?;
-        input.trim().is_empty() || input.trim().eq_ignore_ascii_case("y")
-    };
+    let generate_controller = prompt_yes_no("Generate controller? (Y/n):")?;
 
     generate_core(&ctx)?;
 
