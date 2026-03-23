@@ -95,44 +95,27 @@ fn generate_core(ctx: &AllContext) -> Result<()> {
     Ok(())
 }
 
-fn generate_listing_resources(ctx: &AllContext, entity_type: &str) -> Result<()> {
-    dto::run(
-        Some(&ctx.entity_name),
-        Some(&ctx.module_name),
-        DtoSpec {
-            dto_type: Some("list.filter".to_string()),
-            entity_type: Some(entity_type.to_string()),
-        },
-    )?;
-    listing::run(
-        Some(&ctx.entity_name),
-        Some(&ctx.module_name),
-        EntitySpec {
-            name: Some(ctx.entity_name.clone()),
-            entity_type: Some(entity_type.to_string()),
-        },
-    )?;
-    Ok(())
+enum ChildResource {
+    Listing,
+    Processor,
 }
 
-fn generate_processor_resources(ctx: &AllContext, entity_type: &str) -> Result<()> {
+fn generate_child_resource(ctx: &AllContext, resource: ChildResource, entity_type: &str) -> Result<()> {
+    type RunFn = fn(Option<&str>, Option<&str>, EntitySpec) -> Result<()>;
+    let (dto_type, run): (&str, RunFn) = match resource {
+        ChildResource::Listing => ("list.filter", listing::run),
+        ChildResource::Processor => ("add", processor::run),
+    };
     dto::run(
         Some(&ctx.entity_name),
         Some(&ctx.module_name),
-        DtoSpec {
-            dto_type: Some("add".to_string()),
-            entity_type: Some(entity_type.to_string()),
-        },
+        DtoSpec { dto_type: Some(dto_type.to_string()), entity_type: Some(entity_type.to_string()) },
     )?;
-    processor::run(
+    run(
         Some(&ctx.entity_name),
         Some(&ctx.module_name),
-        EntitySpec {
-            name: Some(ctx.entity_name.clone()),
-            entity_type: Some(entity_type.to_string()),
-        },
-    )?;
-    Ok(())
+        EntitySpec { name: Some(ctx.entity_name.clone()), entity_type: Some(entity_type.to_string()) },
+    )
 }
 
 fn generate_controller_resources(ctx: &AllContext, opts: &ControllerOptions) -> Result<()> {
@@ -161,10 +144,10 @@ fn generate_controller_resources(ctx: &AllContext, opts: &ControllerOptions) -> 
         },
     )?;
     if opts.generate_listing {
-        generate_listing_resources(ctx, &opts.entity_type)?;
+        generate_child_resource(ctx, ChildResource::Listing, &opts.entity_type)?;
     }
     if opts.generate_processor {
-        generate_processor_resources(ctx, &opts.entity_type)?;
+        generate_child_resource(ctx, ChildResource::Processor, &opts.entity_type)?;
     }
     Ok(())
 }
