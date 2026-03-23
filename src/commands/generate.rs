@@ -156,11 +156,11 @@ fn generate_all() -> Result<()> {
     let ctx = collect_all_context()?;
 
     let generate_controller = prompt_yes_no("Generate controller? (Y/n):")?;
+    let opts = if generate_controller { Some(collect_controller_options()?) } else { None };
 
     generate_core(&ctx)?;
 
-    if generate_controller {
-        let opts = collect_controller_options()?;
+    if let Some(opts) = opts {
         generate_controller_resources(&ctx, &opts)?;
     }
 
