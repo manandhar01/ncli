@@ -5,6 +5,18 @@ use std::{
     path::{Path, PathBuf},
 };
 
+/// Groups the entity name and entity type for generator functions.
+pub struct EntitySpec {
+    pub name: Option<String>,
+    pub entity_type: Option<String>,
+}
+
+/// Groups the DTO type and entity type for DTO generator functions.
+pub struct DtoSpec {
+    pub dto_type: Option<String>,
+    pub entity_type: Option<String>,
+}
+
 pub fn prompt(msg: &str) -> Result<String> {
     print!("{} ", msg.cyan());
     io::stdout().flush()?;
