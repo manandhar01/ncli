@@ -32,101 +32,56 @@ pub fn run() -> Result<()> {
 
     for entry in WalkDir::new(&src_path).into_iter().filter_map(|e| e.ok()) {
         let path = entry.path();
-
-        if path.extension().and_then(|s| s.to_str()) == Some("ts")
-            && path
-                .file_name()
-                .and_then(|s| s.to_str())
-                .map(|n| n.ends_with(".job.ts"))
-                .unwrap_or(false)
-        {
-            let content = fs::read_to_string(path)?;
-            if !re_super.is_match(&content) {
-                // Only registrable jobs live under a `jobs/` directory. Helper or
-                // abstract base classes (e.g. common/libraries/common.job.ts) also
-                // end in `.job.ts` but legitimately have no super() call — skip them
-                // quietly. A real job missing super() would silently vanish from the
-                // registry, so make that case a loud, actionable error.
-                let in_jobs_dir = path.components().any(|c| c.as_os_str() == "jobs");
-                if in_jobs_dir {
-                    eprintln!(
-                        "{} {} — no super() call found; this job is EXCLUDED from the \
-                         job registry and will fail at runtime as an unknown job type. \
-                         Add a `super('<hash>')` call to its constructor and re-run.",
-                        "✖".red().bold(),
-                        path.strip_prefix(&cwd)?.display()
-                    );
-                }
-                continue;
-            }
-
-            let class_name = re_class
-                .captures(&content)
-                .and_then(|cap| cap.get(1))
-                .map(|m| m.as_str().to_string());
-
-            if let Some(class_name) = class_name {
-                let module_name =
-                    detect_module_name(path, &src_path).unwrap_or_else(|| "unknown".to_string());
-                let input = format!("{module_name}:{class_name}");
-                let mut hasher = Sha256::new();
-                hasher.update(input.as_bytes());
-                let hash_bytes = hasher.finalize();
-                let hash = format!("{hash_bytes:x}");
-                let hash = hash[..32].to_string();
-
-                let updated_content = if re_has_super_arg.is_match(&content) {
-                    re_has_super_arg
-                        .replace(&content, format!("super(\"{hash}\")"))
-                        .to_string()
-                } else {
-                    re_super
-                        .replace(&content, format!("super(\"{hash}\")"))
-                        .to_string()
-                };
-
-                fs::write(path, updated_content)?;
-
-                let relative_import = path
-                    .strip_prefix(&src_path)
-                    .unwrap()
-                    .with_extension("")
-                    .to_str()
-                    .unwrap()
-                    .replace('\\', "/");
-
-                import_map.push((class_name.clone(), relative_import.clone()));
-                job_map.insert(hash.clone(), class_name.clone());
-
-                println!(
-                    "{} {} ({}) => {}",
-                    "✔".green().bold(),
-                    class_name.bold(),
-                    module_name.yellow(),
-                    hash.dimmed()
-                );
-            }
+        if !is_job_file(path) {
+            continue;
         }
+
+        let content = fs::read_to_string(path)?;
+        if !re_super.is_match(&content) {
+            warn_unregistrable_job(path, &cwd)?;
+            continue;
+        }
+
+        let Some(class_name) = re_class
+            .captures(&content)
+            .and_then(|cap| cap.get(1))
+            .map(|m| m.as_str().to_string())
+        else {
+            continue;
+        };
+
+        let module_name =
+            detect_module_name(path, &src_path).unwrap_or_else(|| "unknown".to_string());
+        let hash = compute_job_hash(&module_name, &class_name);
+
+        let updated_content = rewrite_super_call(&content, &hash, &re_super, &re_has_super_arg);
+        fs::write(path, updated_content)?;
+
+        let relative_import = path
+            .strip_prefix(&src_path)
+            .unwrap()
+            .with_extension("")
+            .to_str()
+            .unwrap()
+            .replace('\\', "/");
+
+        import_map.push((class_name.clone(), relative_import));
+        job_map.insert(hash.clone(), class_name.clone());
+
+        println!(
+            "{} {} ({}) => {}",
+            "✔".green().bold(),
+            class_name.bold(),
+            module_name.yellow(),
+            hash.dimmed()
+        );
     }
 
     if !config_dir.exists() {
         fs::create_dir_all(&config_dir)?;
     }
 
-    let mut ts_content = String::from("// Auto-generated file. Do not edit manually.\n\n");
-
-    for (class, import_path) in &import_map {
-        ts_content.push_str(&format!("import {{  {class} }} from '../{import_path}';\n"));
-    }
-
-    ts_content.push_str("\nexport const jobRegistry: Record<string, any> = {\n");
-
-    for (hash, class) in &job_map {
-        ts_content.push_str(&format!("    \"{hash}\": {class},\n"));
-    }
-
-    ts_content.push_str("};\n");
-
+    let ts_content = render_registry(&import_map, &job_map);
     fs::write(&output_file, ts_content)?;
 
     println!(
@@ -140,6 +95,73 @@ pub fn run() -> Result<()> {
     );
 
     Ok(())
+}
+
+fn is_job_file(path: &Path) -> bool {
+    path.extension().and_then(|s| s.to_str()) == Some("ts")
+        && path
+            .file_name()
+            .and_then(|s| s.to_str())
+            .map(|n| n.ends_with(".job.ts"))
+            .unwrap_or(false)
+}
+
+/// A `.job.ts` file with no `super()` call cannot carry a hash. Real jobs live
+/// under a `jobs/` directory, so surface a loud, actionable error for those (they
+/// would otherwise vanish from the registry and fail at runtime as an unknown job
+/// type). Helper/abstract base classes like `common/libraries/common.job.ts` also
+/// match the filename but legitimately have no `super()` call — skip them quietly.
+fn warn_unregistrable_job(path: &Path, cwd: &Path) -> Result<()> {
+    let in_jobs_dir = path.components().any(|c| c.as_os_str() == "jobs");
+    if in_jobs_dir {
+        eprintln!(
+            "{} {} — no super() call found; this job is EXCLUDED from the \
+             job registry and will fail at runtime as an unknown job type. \
+             Add a `super('<hash>')` call to its constructor and re-run.",
+            "✖".red().bold(),
+            path.strip_prefix(cwd)?.display()
+        );
+    }
+    Ok(())
+}
+
+fn compute_job_hash(module_name: &str, class_name: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(format!("{module_name}:{class_name}").as_bytes());
+    let hash = format!("{:x}", hasher.finalize());
+    hash[..32].to_string()
+}
+
+fn rewrite_super_call(
+    content: &str,
+    hash: &str,
+    re_super: &Regex,
+    re_has_super_arg: &Regex,
+) -> String {
+    let replacement = format!("super(\"{hash}\")");
+    let re = if re_has_super_arg.is_match(content) {
+        re_has_super_arg
+    } else {
+        re_super
+    };
+    re.replace(content, replacement).to_string()
+}
+
+fn render_registry(import_map: &[(String, String)], job_map: &BTreeMap<String, String>) -> String {
+    let mut ts_content = String::from("// Auto-generated file. Do not edit manually.\n\n");
+
+    for (class, import_path) in import_map {
+        ts_content.push_str(&format!("import {{  {class} }} from '../{import_path}';\n"));
+    }
+
+    ts_content.push_str("\nexport const jobRegistry: Record<string, any> = {\n");
+
+    for (hash, class) in job_map {
+        ts_content.push_str(&format!("    \"{hash}\": {class},\n"));
+    }
+
+    ts_content.push_str("};\n");
+    ts_content
 }
 
 fn detect_module_name(path: &Path, src_path: &Path) -> Option<String> {
