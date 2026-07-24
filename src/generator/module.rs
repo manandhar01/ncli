@@ -28,7 +28,7 @@ pub fn run(module_name: Option<&str>) -> Result<()> {
 
         create_module_file(&src_path, &module_name)?;
     } else {
-        let module_file = module_dir.join(format!("{}.module.ts", module_name.to_lowercase()));
+        let module_file = module_dir.join(format!("{module_name}.module.ts"));
 
         if !module_file.exists() {
             create_module_file(&src_path, &module_name)?;

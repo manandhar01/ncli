@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-
+import { {{ModuleName}}ModuleComponents } from './{{ModuleName}}.module.components';
 
 const { controllers, entities, jobs, services, strategies, subscribers } =
     {{ModuleName}}ModuleComponents;
