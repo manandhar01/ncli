@@ -16,9 +16,6 @@ pub fn run() -> Result<()> {
         std::process::exit(1);
     }
 
-    let mut job_map: BTreeMap<String, String> = BTreeMap::new();
-    let mut import_map: Vec<(String, String)> = Vec::new();
-
     println!(
         "\n{}\n",
         "🔍 Scanning for job files to generate hash..."
@@ -26,56 +23,7 @@ pub fn run() -> Result<()> {
             .cyan()
     );
 
-    let re_class = Regex::new(r#"export\s+class\s+(\w+)"#)?;
-    let re_super = Regex::new(r#"super\s*\("#)?;
-    let re_has_super_arg = Regex::new(r#"super\s*\([^)]*\)"#)?;
-
-    for entry in WalkDir::new(&src_path).into_iter().filter_map(|e| e.ok()) {
-        let path = entry.path();
-        if !is_job_file(path) {
-            continue;
-        }
-
-        let content = fs::read_to_string(path)?;
-        if !re_super.is_match(&content) {
-            warn_unregistrable_job(path, &cwd)?;
-            continue;
-        }
-
-        let Some(class_name) = re_class
-            .captures(&content)
-            .and_then(|cap| cap.get(1))
-            .map(|m| m.as_str().to_string())
-        else {
-            continue;
-        };
-
-        let module_name =
-            detect_module_name(path, &src_path).unwrap_or_else(|| "unknown".to_string());
-        let hash = compute_job_hash(&module_name, &class_name);
-
-        let updated_content = rewrite_super_call(&content, &hash, &re_super, &re_has_super_arg);
-        fs::write(path, updated_content)?;
-
-        let relative_import = path
-            .strip_prefix(&src_path)
-            .unwrap()
-            .with_extension("")
-            .to_str()
-            .unwrap()
-            .replace('\\', "/");
-
-        import_map.push((class_name.clone(), relative_import));
-        job_map.insert(hash.clone(), class_name.clone());
-
-        println!(
-            "{} {} ({}) => {}",
-            "✔".green().bold(),
-            class_name.bold(),
-            module_name.yellow(),
-            hash.dimmed()
-        );
-    }
+    let (job_map, import_map) = collect_jobs(&src_path, &cwd)?;
 
     if !config_dir.exists() {
         fs::create_dir_all(&config_dir)?;
@@ -95,6 +43,68 @@ pub fn run() -> Result<()> {
     );
 
     Ok(())
+}
+
+type JobMaps = (BTreeMap<String, String>, Vec<(String, String)>);
+
+/// Scan every `*.job.ts` under `src_path`, stamp each job's `super()` call with
+/// its hash, and collect the hash -> class map plus the import list.
+fn collect_jobs(src_path: &Path, cwd: &Path) -> Result<JobMaps> {
+    let re_class = Regex::new(r#"export\s+class\s+(\w+)"#)?;
+    let re_super = Regex::new(r#"super\s*\("#)?;
+    let re_has_super_arg = Regex::new(r#"super\s*\([^)]*\)"#)?;
+
+    let mut job_map: BTreeMap<String, String> = BTreeMap::new();
+    let mut import_map: Vec<(String, String)> = Vec::new();
+
+    for entry in WalkDir::new(src_path).into_iter().filter_map(|e| e.ok()) {
+        let path = entry.path();
+        if !is_job_file(path) {
+            continue;
+        }
+
+        let content = fs::read_to_string(path)?;
+        if !re_super.is_match(&content) {
+            warn_unregistrable_job(path, cwd)?;
+            continue;
+        }
+
+        let Some(class_name) = re_class
+            .captures(&content)
+            .and_then(|cap| cap.get(1))
+            .map(|m| m.as_str().to_string())
+        else {
+            continue;
+        };
+
+        let module_name =
+            detect_module_name(path, src_path).unwrap_or_else(|| "unknown".to_string());
+        let hash = compute_job_hash(&module_name, &class_name);
+
+        let updated_content = rewrite_super_call(&content, &hash, &re_super, &re_has_super_arg);
+        fs::write(path, updated_content)?;
+
+        let relative_import = path
+            .strip_prefix(src_path)
+            .unwrap()
+            .with_extension("")
+            .to_str()
+            .unwrap()
+            .replace('\\', "/");
+
+        import_map.push((class_name.clone(), relative_import));
+        job_map.insert(hash.clone(), class_name.clone());
+
+        println!(
+            "{} {} ({}) => {}",
+            "✔".green().bold(),
+            class_name.bold(),
+            module_name.yellow(),
+            hash.dimmed()
+        );
+    }
+
+    Ok((job_map, import_map))
 }
 
 fn is_job_file(path: &Path) -> bool {
