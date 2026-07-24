@@ -42,11 +42,21 @@ pub fn run() -> Result<()> {
         {
             let content = fs::read_to_string(path)?;
             if !re_super.is_match(&content) {
-                println!(
-                    "{} {} (no super call, skipped)",
-                    "⚠".yellow(),
-                    path.strip_prefix(&cwd)?.display()
-                );
+                // Only registrable jobs live under a `jobs/` directory. Helper or
+                // abstract base classes (e.g. common/libraries/common.job.ts) also
+                // end in `.job.ts` but legitimately have no super() call — skip them
+                // quietly. A real job missing super() would silently vanish from the
+                // registry, so make that case a loud, actionable error.
+                let in_jobs_dir = path.components().any(|c| c.as_os_str() == "jobs");
+                if in_jobs_dir {
+                    eprintln!(
+                        "{} {} — no super() call found; this job is EXCLUDED from the \
+                         job registry and will fail at runtime as an unknown job type. \
+                         Add a `super('<hash>')` call to its constructor and re-run.",
+                        "✖".red().bold(),
+                        path.strip_prefix(&cwd)?.display()
+                    );
+                }
                 continue;
             }
 
@@ -56,7 +66,8 @@ pub fn run() -> Result<()> {
                 .map(|m| m.as_str().to_string());
 
             if let Some(class_name) = class_name {
-                let module_name = detect_module_name(path).unwrap_or_else(|| "unknown".to_string());
+                let module_name =
+                    detect_module_name(path, &src_path).unwrap_or_else(|| "unknown".to_string());
                 let input = format!("{module_name}:{class_name}");
                 let mut hasher = Sha256::new();
                 hasher.update(input.as_bytes());
@@ -131,16 +142,10 @@ pub fn run() -> Result<()> {
     Ok(())
 }
 
-fn detect_module_name(path: &Path) -> Option<String> {
-    let path = path.canonicalize().ok()?;
-    let components: Vec<String> = path
+fn detect_module_name(path: &Path, src_path: &Path) -> Option<String> {
+    path.strip_prefix(src_path)
+        .ok()?
         .components()
+        .next()
         .map(|c| c.as_os_str().to_string_lossy().into_owned())
-        .collect();
-
-    if let Some(src_index) = components.iter().position(|c| c == "src") {
-        return components.get(src_index + 1).cloned();
-    }
-
-    None
 }
