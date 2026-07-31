@@ -11,10 +11,9 @@ pub struct EntitySpec {
     pub entity_type: Option<String>,
 }
 
-/// Groups the DTO type and entity type for DTO generator functions.
+/// Groups the DTO type for DTO generator functions.
 pub struct DtoSpec {
     pub dto_type: Option<String>,
-    pub entity_type: Option<String>,
 }
 
 pub fn prompt(msg: &str) -> Result<String> {

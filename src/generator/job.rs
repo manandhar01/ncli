@@ -51,7 +51,9 @@ pub fn run(
         _ => JOB_DEFAULT_STUB,
     };
 
-    let content = template.replace("{{JobName}}", &job_name);
+    let content = template
+        .replace("{{JobName}}", &job_name)
+        .replace("{{job_file}}", &job_file_name);
 
     fs::write(&job_file, content).with_context(|| {
         format!(

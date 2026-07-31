@@ -1,6 +1,9 @@
+import { SelectQueryBuilder } from 'typeorm';
 import { ListConfigOptionsDto } from '../../common/dtos/list.config.options.dto';
+import { OwnershipScope } from '../../common/libraries/ownership.scope';
 import { ProcessCommonList } from '../../common/libraries/process.common.list';
-
+import { {{ListingName}}ListFilterDto } from '../dtos/{{listing_file}}.list.filter.dto';
+import { {{EntityName}}Entity } from '../entities/{{entity_file}}.entity';
 
 export class Process{{ListingName}}List extends ProcessCommonList<{{EntityName}}Entity> {
     protected entity: new () => {{EntityName}}Entity = {{EntityName}}Entity;
@@ -8,20 +11,20 @@ export class Process{{ListingName}}List extends ProcessCommonList<{{EntityName}}
 
     protected config: ListConfigOptionsDto<{{EntityName}}Entity> = {
         searchableColumns: [],
-        orderBy: '',
-        orderDirection: '',
+        orderBy: 'created_at',
+        orderDirection: 'DESC',
     };
 
-    constructor(private readonly business: BusinessEntity) {
+    constructor(private readonly scope: OwnershipScope) {
         super();
     }
 
-    async process(payload: {{EntityName}}ListFilterDto) {
+    async process(payload: {{ListingName}}ListFilterDto) {
         this.payload = { ...payload };
         return this.handle();
     }
 
     protected applyCustomFilters(qb: SelectQueryBuilder<{{EntityName}}Entity>) {
-        qb.andWhere('entity.business_id = :business_id', { business_id: this.business.id });
+        this.scope.applyTo(qb);
     }
 }

@@ -7,7 +7,6 @@ use crate::generator::{
     utility::{get_file_name, get_relative_path, prompt, EntitySpec},
 };
 
-const SERVICE_STUB: &str = include_str!("../../templates/service.stub");
 const BUSINESS_SERVICE_STUB: &str = include_str!("../../templates/business.service.stub");
 const USER_SERVICE_STUB: &str = include_str!("../../templates/user.service.stub");
 
@@ -48,10 +47,10 @@ pub fn run(
         std::env::current_dir().with_context(|| "Failed to get current working directory".red())?;
     let src_path = cwd.join("src");
 
-    let types = if entity_type == "both" {
-        vec!["business.", "user."]
-    } else {
-        vec![""]
+    let types = match entity_type.as_str() {
+        "business" => vec!["business."],
+        "user" => vec!["user."],
+        _ => vec!["business.", "user."],
     };
 
     for t in types {
@@ -69,6 +68,7 @@ struct ServiceContext<'a> {
 
 fn generate_service(name: &str, entity_type: &str, ctx: &ServiceContext<'_>) -> Result<()> {
     let service_file_name = get_file_name(name);
+    let entity_file_name = get_file_name(ctx.entity_name);
     let service_dir = ctx.src_path.join(ctx.module_name).join("services");
     let service_file = service_dir.join(format!("{entity_type}{service_file_name}.service.ts"));
 
@@ -86,13 +86,13 @@ fn generate_service(name: &str, entity_type: &str, ctx: &ServiceContext<'_>) -> 
 
     let stub = match entity_type {
         "business." => BUSINESS_SERVICE_STUB,
-        "user." => USER_SERVICE_STUB,
-        _ => SERVICE_STUB,
+        _ => USER_SERVICE_STUB,
     };
 
     let content = stub
         .replace("{{ServiceName}}", name)
-        .replace("{{EntityName}}", ctx.entity_name);
+        .replace("{{EntityName}}", ctx.entity_name)
+        .replace("{{entity_file}}", &entity_file_name);
 
     fs::write(&service_file, content).with_context(|| {
         format!(

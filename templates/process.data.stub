@@ -1,14 +1,17 @@
+import { UnauthorizedException } from '@nestjs/common';
+import { OwnershipScope } from '../../common/libraries/ownership.scope';
 import { ProcessCommonData } from '../../common/libraries/process.common.data';
-
+import { Add{{ProcessorName}}Dto } from '../dtos/add.{{processor_file}}.dto';
+import { {{EntityName}}Entity } from '../entities/{{entity_file}}.entity';
 
 export class Process{{ProcessorName}}Data extends ProcessCommonData {
-    protected payload: Add{{EntityName}}Dto;
+    protected payload: Add{{ProcessorName}}Dto;
 
-    constructor(private readonly business: BusinessEntity) {
+    constructor(private readonly scope: OwnershipScope) {
         super();
     }
 
-    async process(payload: Add{{EntityName}}Dto) {
+    async process(payload: Add{{ProcessorName}}Dto) {
         this.payload = payload;
 
         await this.validate();
@@ -18,7 +21,7 @@ export class Process{{ProcessorName}}Data extends ProcessCommonData {
 
     private async create() {
         const record = await this.getOrCreateRecord();
-        if (record?.business_id !== this.business.id) throw new UnauthorizedException();
+        if (!this.scope.owns(record)) throw new UnauthorizedException();
 
         this.assignPayloadToRecord(record);
         return record.save();
@@ -27,14 +30,12 @@ export class Process{{ProcessorName}}Data extends ProcessCommonData {
     private async getOrCreateRecord() {
         if (this.payload.id) return {{EntityName}}Entity.first(this.payload.id);
 
-        return {{EntityName}}Entity.create({
-            business_id: this.business.id,
-        });
+        return this.scope.stamp({{EntityName}}Entity.create());
     }
 
-    private assignPayloadToRecord(record: {{EntityName}}Entity) {}
+    private assignPayloadToRecord(_record: {{EntityName}}Entity) {}
 
     private async validate() {
-        this.throwExceptionOnError()
+        this.throwExceptionOnError();
     }
 }

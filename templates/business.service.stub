@@ -1,5 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-
+import { {{EntityName}}Entity } from '../entities/{{entity_file}}.entity';
 
 @Injectable()
 export class Business{{ServiceName}}Service {

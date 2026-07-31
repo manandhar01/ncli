@@ -13,7 +13,7 @@ pub fn handle(cmd: GenerateCommand) -> Result<()> {
         GenerateTarget::Controller => {
             controller::run(None, None, EntitySpec { name: None, entity_type: None })?
         }
-        GenerateTarget::Dto => dto::run(None, None, DtoSpec { dto_type: None, entity_type: None })?,
+        GenerateTarget::Dto => dto::run(None, None, DtoSpec { dto_type: None })?,
         GenerateTarget::Entity => entity::run(None, None, None)?,
         GenerateTarget::Job => job::run(None, None, None)?,
         GenerateTarget::Listing => {
@@ -109,7 +109,7 @@ fn generate_child_resource(ctx: &AllContext, resource: ChildResource, entity_typ
     dto::run(
         Some(&ctx.entity_name),
         Some(&ctx.module_name),
-        DtoSpec { dto_type: Some(dto_type.to_string()), entity_type: Some(entity_type.to_string()) },
+        DtoSpec { dto_type: Some(dto_type.to_string()) },
     )?;
     run(
         Some(&ctx.entity_name),
@@ -132,7 +132,6 @@ fn generate_controller_resources(ctx: &AllContext, opts: &ControllerOptions) -> 
         Some(&ctx.module_name),
         DtoSpec {
             dto_type: Some("find".to_string()),
-            entity_type: Some(opts.entity_type.clone()),
         },
     )?;
     service::run(

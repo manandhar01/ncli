@@ -1,3 +1,0 @@
-import { CommonFindDto } from '../../common/dtos/common.find.dto';
-
-export class User{{DtoName}}FindDto extends CommonFindDto {}

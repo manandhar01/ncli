@@ -3,13 +3,12 @@ use colored::*;
 use std::fs;
 
 use crate::generator::{
-    module,
+    find_config, module,
     utility::{get_file_name, get_relative_path, prompt, to_camel_case, EntitySpec},
 };
 
 const BUSINESS_CONTROLLER_STUB: &str = include_str!("../../templates/business.controller.stub");
 const USER_CONTROLLER_STUB: &str = include_str!("../../templates/user.controller.stub");
-const CONTROLLER_STUB: &str = include_str!("../../templates/controller.stub");
 
 pub fn run(
     controller_name: Option<&str>,
@@ -48,10 +47,12 @@ pub fn run(
         std::env::current_dir().with_context(|| "Failed to get current working directory".red())?;
     let src_path = cwd.join("src");
 
-    let types = if entity_type == "both" {
-        vec!["business.", "user."]
-    } else {
-        vec![""]
+    find_config::run(Some(&controller_name), Some(&module_name), Some(&entity_name))?;
+
+    let types = match entity_type.as_str() {
+        "business" => vec!["business."],
+        "user" => vec!["user."],
+        _ => vec!["business.", "user."],
     };
 
     for t in types {
@@ -69,6 +70,7 @@ struct ControllerContext<'a> {
 
 fn generate_controller(name: &str, entity_type: &str, ctx: &ControllerContext<'_>) -> Result<()> {
     let controller_file_name = get_file_name(name);
+    let entity_file_name = get_file_name(ctx.entity_name);
     let controller_dir = ctx.src_path.join(ctx.module_name).join("controllers");
     let controller_file =
         controller_dir.join(format!("{entity_type}{controller_file_name}.controller.ts"));
@@ -85,18 +87,19 @@ fn generate_controller(name: &str, entity_type: &str, ctx: &ControllerContext<'_
         .red()
     })?;
 
-    let controller_var = to_camel_case(name);
+    let name_camel = to_camel_case(name);
 
     let template = match entity_type {
         "business." => BUSINESS_CONTROLLER_STUB,
-        "user." => USER_CONTROLLER_STUB,
-        _ => CONTROLLER_STUB,
+        _ => USER_CONTROLLER_STUB,
     };
 
     let content = template
         .replace("{{ControllerName}}", name)
-        .replace("{{controller_var}}", &controller_var)
-        .replace("{{EntityName}}", ctx.entity_name);
+        .replace("{{EntityName}}", ctx.entity_name)
+        .replace("{{controller_file}}", &controller_file_name)
+        .replace("{{entity_file}}", &entity_file_name)
+        .replace("{{name_camel}}", &name_camel);
 
     fs::write(&controller_file, content).with_context(|| {
         format!(
