@@ -27,16 +27,31 @@ pub fn run(
         _ => prompt("Enter module name:")?,
     };
 
+    module::run(Some(&module_name))?;
+
     let cwd =
         std::env::current_dir().with_context(|| "Failed to get current working directory".red())?;
     let src_path = cwd.join("src");
 
-    module::run(Some(&module_name))?;
+    generate_find_config(
+        &config_name,
+        &FindConfigContext { entity_name: &entity_name, module_name: &module_name, src_path: &src_path },
+    )?;
 
-    let config_file_name = get_file_name(&config_name);
-    let entity_file_name = get_file_name(&entity_name);
-    let name_camel = to_camel_case(&config_name);
-    let config_dir = src_path.join(&module_name).join("libraries");
+    Ok(())
+}
+
+struct FindConfigContext<'a> {
+    entity_name: &'a str,
+    module_name: &'a str,
+    src_path: &'a std::path::Path,
+}
+
+fn generate_find_config(name: &str, ctx: &FindConfigContext<'_>) -> Result<()> {
+    let config_file_name = get_file_name(name);
+    let entity_file_name = get_file_name(ctx.entity_name);
+    let name_camel = to_camel_case(name);
+    let config_dir = ctx.src_path.join(ctx.module_name).join("libraries");
     let config_file = config_dir.join(format!("{config_file_name}.find.config.ts"));
 
     if config_file.exists() {
@@ -52,7 +67,7 @@ pub fn run(
     })?;
 
     let content = FIND_CONFIG_STUB
-        .replace("{{EntityName}}", &entity_name)
+        .replace("{{EntityName}}", ctx.entity_name)
         .replace("{{entity_file}}", &entity_file_name)
         .replace("{{name_camel}}", &name_camel);
 
