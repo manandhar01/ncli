@@ -8,8 +8,6 @@ use crate::generator::{
 };
 
 const LISTING_STUB: &str = include_str!("../../templates/process.list.stub");
-const BUSINESS_LISTING_STUB: &str = include_str!("../../templates/business.process.list.stub");
-const USER_LISTING_STUB: &str = include_str!("../../templates/user.process.list.stub");
 
 pub fn run(
     listing_name: Option<&str>,
@@ -28,19 +26,6 @@ pub fn run(
         Some(name) if !name.is_empty() => name.to_string(),
         _ => prompt("Enter module name:")?,
     };
-    let entity_type = match entity_spec.entity_type {
-        Some(ref t) if !t.is_empty() => t.clone(),
-        _ => {
-            let input = prompt(
-                "Select entity type to generate:\n1) Business specific\n2) User specific\n3) Both (default)\nEnter choice (1/2/3):",
-            )?;
-            match input.trim() {
-                "1" => "business".to_string(),
-                "2" => "user".to_string(),
-                _ => "both".to_string(),
-            }
-        }
-    };
 
     module::run(Some(&module_name))?;
 
@@ -48,15 +33,10 @@ pub fn run(
         std::env::current_dir().with_context(|| "Failed to get current working directory".red())?;
     let src_path = cwd.join("src");
 
-    let types = if entity_type == "both" {
-        vec!["business.", "user."]
-    } else {
-        vec![""]
-    };
-
-    for t in types {
-        generate_listing(&listing_name, t, &ListingContext { entity_name: &entity_name, module_name: &module_name, src_path: &src_path })?;
-    }
+    generate_listing(
+        &listing_name,
+        &ListingContext { entity_name: &entity_name, module_name: &module_name, src_path: &src_path },
+    )?;
 
     Ok(())
 }
@@ -67,11 +47,11 @@ struct ListingContext<'a> {
     src_path: &'a std::path::Path,
 }
 
-fn generate_listing(name: &str, entity_type: &str, ctx: &ListingContext<'_>) -> Result<()> {
+fn generate_listing(name: &str, ctx: &ListingContext<'_>) -> Result<()> {
     let listing_file_name = get_file_name(name);
+    let entity_file_name = get_file_name(ctx.entity_name);
     let listing_dir = ctx.src_path.join(ctx.module_name).join("libraries");
-    let listing_file =
-        listing_dir.join(format!("process.{entity_type}{listing_file_name}.list.ts"));
+    let listing_file = listing_dir.join(format!("process.{listing_file_name}.list.ts"));
 
     if listing_file.exists() {
         return Ok(());
@@ -85,15 +65,11 @@ fn generate_listing(name: &str, entity_type: &str, ctx: &ListingContext<'_>) -> 
         .red()
     })?;
 
-    let template = match entity_type {
-        "business." => BUSINESS_LISTING_STUB,
-        "user." => USER_LISTING_STUB,
-        _ => LISTING_STUB,
-    };
-
-    let content = template
+    let content = LISTING_STUB
         .replace("{{ListingName}}", name)
-        .replace("{{EntityName}}", ctx.entity_name);
+        .replace("{{EntityName}}", ctx.entity_name)
+        .replace("{{listing_file}}", &listing_file_name)
+        .replace("{{entity_file}}", &entity_file_name);
 
     fs::write(&listing_file, content).with_context(|| {
         format!(

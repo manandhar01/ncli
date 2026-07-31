@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { DatabaseEventDto } from '../../common/dtos/database.event.dto';
 import { CommonJob } from '../../common/libraries/common.job';
 import { QueueService } from '../../common/services/queue.service';
+import { {{JobName}}Entity } from '../entities/{{job_file}}.entity';
 
 @Injectable()
 export class {{JobName}}Job extends CommonJob {

@@ -10,43 +10,52 @@ import {
     UnauthorizedException,
     UseInterceptors,
 } from '@nestjs/common';
-import { FindConfigOptionsDto } from '../../common/dtos/find.config.options.dto';
+import { CommonParamDto } from '../../common/dtos/common.param.dto';
+import { OwnershipScope } from '../../common/libraries/ownership.scope';
 import { ProcessCommonFind } from '../../common/libraries/process.common.find';
+import { OwnerAccessService } from '../../user/services/owner.access.service';
+import { Add{{ControllerName}}Dto } from '../dtos/add.{{controller_file}}.dto';
+import { {{ControllerName}}FindDto } from '../dtos/{{controller_file}}.find.dto';
+import { {{ControllerName}}ListFilterDto } from '../dtos/{{controller_file}}.list.filter.dto';
+import { {{EntityName}}Entity } from '../entities/{{entity_file}}.entity';
+import { {{name_camel}}FindConfig } from '../libraries/{{controller_file}}.find.config';
+import { Process{{ControllerName}}Data } from '../libraries/process.{{controller_file}}.data';
+import { Process{{ControllerName}}List } from '../libraries/process.{{controller_file}}.list';
+import { User{{ControllerName}}Service } from '../services/user.{{controller_file}}.service';
 
-@Controller('')
+@Controller('user/')
 export class User{{ControllerName}}Controller {
     constructor(
         private readonly user{{ControllerName}}Service: User{{ControllerName}}Service,
-        private readonly ownerAccessService: OwnerAccessService
+        private readonly ownerAccessService: OwnerAccessService,
     ) {}
 
     @Post('search')
-    async search(@Body() body: User{{EntityName}}ListFilterDto) {
+    async search(@Body() body: {{ControllerName}}ListFilterDto) {
         const owner = await this.ownerAccessService.validateAccess();
 
-        return new ProcessUser{{EntityName}}List(owner).process(body);
+        return new Process{{ControllerName}}List(
+            OwnershipScope.forOwner(owner),
+        ).process(body);
     }
 
     @Post('find')
-    async find(@Body() body: User{{EntityName}}FindDto) {
+    async find(@Body() body: {{ControllerName}}FindDto) {
         const owner = await this.ownerAccessService.validateAccess();
 
-        const config: FindConfigOptionsDto<{{EntityName}}Entity> = {
-            searchableColumns: [],
-            orderBy: '',
-            orderDirection: '',
-            columns: [],
-            where: { owner_id: owner.id },
-        };
-
-        return new ProcessCommonFind({{EntityName}}Entity, config).process(body);
+        return new ProcessCommonFind(
+            {{EntityName}}Entity,
+            {{name_camel}}FindConfig(OwnershipScope.forOwner(owner)),
+        ).process(body);
     }
 
     @Post()
-    async create(@Body() body: AddUser{{EntityName}}Dto) {
+    async create(@Body() body: Add{{ControllerName}}Dto) {
         const owner = await this.ownerAccessService.validateAccess();
 
-        return new ProcessUser{{EntityName}}Data(owner).process(body);
+        return new Process{{ControllerName}}Data(
+            OwnershipScope.forOwner(owner),
+        ).process(body);
     }
 
     @UseInterceptors(ClassSerializerInterceptor)
@@ -55,9 +64,10 @@ export class User{{ControllerName}}Controller {
         const owner = await this.ownerAccessService.validateAccess();
 
         const record = await {{EntityName}}Entity.first(params.id, {
-            relations: ['owner'],
+            relations: [],
         });
-        if (record?.owner_id !== owner.id) throw new UnauthorizedException();
+        if (!OwnershipScope.forOwner(owner).owns(record))
+            throw new UnauthorizedException();
 
         return record;
     }
@@ -67,7 +77,11 @@ export class User{{ControllerName}}Controller {
     async activate(@Param() params: CommonParamDto) {
         const owner = await this.ownerAccessService.validateAccess();
 
-        return this.user{{ControllerName}}Service.updateActiveStatus(params.id, owner.id, true);
+        return this.user{{ControllerName}}Service.updateActiveStatus(
+            params.id,
+            owner.id,
+            true,
+        );
     }
 
     @Patch(':id/deactivate')
@@ -75,7 +89,11 @@ export class User{{ControllerName}}Controller {
     async deactivate(@Param() params: CommonParamDto) {
         const owner = await this.ownerAccessService.validateAccess();
 
-        return this.user{{ControllerName}}Service.updateActiveStatus(params.id, owner.id, false);
+        return this.user{{ControllerName}}Service.updateActiveStatus(
+            params.id,
+            owner.id,
+            false,
+        );
     }
 
     @UseInterceptors(ClassSerializerInterceptor)
@@ -84,7 +102,8 @@ export class User{{ControllerName}}Controller {
         const owner = await this.ownerAccessService.validateAccess();
 
         const record = await {{EntityName}}Entity.first(params.id);
-        if (record?.owner_id !== owner.id) throw new UnauthorizedException();
+        if (!OwnershipScope.forOwner(owner).owns(record))
+            throw new UnauthorizedException();
 
         return record.softDelete();
     }

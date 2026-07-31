@@ -49,9 +49,11 @@ pub fn run(
         .red()
     })?;
 
+    let entity_file_name = get_file_name(&entity_name);
     let content = SUBSCRIBER_STUB
         .replace("{{SubscriberName}}", &subscriber_name)
-        .replace("{{EntityName}}", &entity_name);
+        .replace("{{EntityName}}", &entity_name)
+        .replace("{{entity_file}}", &entity_file_name);
 
     fs::write(&subscriber_file, content).with_context(|| {
         format!(

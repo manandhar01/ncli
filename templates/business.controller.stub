@@ -10,43 +10,52 @@ import {
     UnauthorizedException,
     UseInterceptors,
 } from '@nestjs/common';
-import { FindConfigOptionsDto } from '../../common/dtos/find.config.options.dto';
+import { BusinessAccessService } from '../../business/services/business.access.service';
+import { CommonParamDto } from '../../common/dtos/common.param.dto';
+import { OwnershipScope } from '../../common/libraries/ownership.scope';
 import { ProcessCommonFind } from '../../common/libraries/process.common.find';
+import { Add{{ControllerName}}Dto } from '../dtos/add.{{controller_file}}.dto';
+import { {{ControllerName}}FindDto } from '../dtos/{{controller_file}}.find.dto';
+import { {{ControllerName}}ListFilterDto } from '../dtos/{{controller_file}}.list.filter.dto';
+import { {{EntityName}}Entity } from '../entities/{{entity_file}}.entity';
+import { {{name_camel}}FindConfig } from '../libraries/{{controller_file}}.find.config';
+import { Process{{ControllerName}}Data } from '../libraries/process.{{controller_file}}.data';
+import { Process{{ControllerName}}List } from '../libraries/process.{{controller_file}}.list';
+import { Business{{ControllerName}}Service } from '../services/business.{{controller_file}}.service';
 
-@Controller('')
+@Controller('business/')
 export class Business{{ControllerName}}Controller {
     constructor(
         private readonly business{{ControllerName}}Service: Business{{ControllerName}}Service,
-        private readonly businessAccessService: BusinessAccessService
+        private readonly businessAccessService: BusinessAccessService,
     ) {}
 
     @Post('search')
-    async search(@Body() body: Business{{EntityName}}ListFilterDto) {
+    async search(@Body() body: {{ControllerName}}ListFilterDto) {
         const business = await this.businessAccessService.validateAccess();
 
-        return new ProcessBusiness{{EntityName}}List(business).process(body);
+        return new Process{{ControllerName}}List(
+            OwnershipScope.forBusiness(business),
+        ).process(body);
     }
 
     @Post('find')
-    async find(@Body() body: Business{{EntityName}}FindDto) {
+    async find(@Body() body: {{ControllerName}}FindDto) {
         const business = await this.businessAccessService.validateAccess();
 
-        const config: FindConfigOptionsDto<{{EntityName}}Entity> = {
-            searchableColumns: [],
-            orderBy: '',
-            orderDirection: '',
-            columns: [],
-            where: { business_id: business.id },
-        };
-
-        return new ProcessCommonFind({{EntityName}}Entity, config).process(body);
+        return new ProcessCommonFind(
+            {{EntityName}}Entity,
+            {{name_camel}}FindConfig(OwnershipScope.forBusiness(business)),
+        ).process(body);
     }
 
     @Post()
-    async create(@Body() body: AddBusiness{{EntityName}}Dto) {
+    async create(@Body() body: Add{{ControllerName}}Dto) {
         const business = await this.businessAccessService.validateAccess();
 
-        return new ProcessBusiness{{EntityName}}Data(business).process(body);
+        return new Process{{ControllerName}}Data(
+            OwnershipScope.forBusiness(business),
+        ).process(body);
     }
 
     @UseInterceptors(ClassSerializerInterceptor)
@@ -57,7 +66,8 @@ export class Business{{ControllerName}}Controller {
         const record = await {{EntityName}}Entity.first(params.id, {
             relations: [],
         });
-        if (record?.business_id !== business.id) throw new UnauthorizedException();
+        if (!OwnershipScope.forBusiness(business).owns(record))
+            throw new UnauthorizedException();
 
         return record;
     }
@@ -67,7 +77,11 @@ export class Business{{ControllerName}}Controller {
     async activate(@Param() params: CommonParamDto) {
         const business = await this.businessAccessService.validateAccess();
 
-        return this.business{{ControllerName}}Service.updateActiveStatus(params.id, business.id, true);
+        return this.business{{ControllerName}}Service.updateActiveStatus(
+            params.id,
+            business.id,
+            true,
+        );
     }
 
     @Patch(':id/deactivate')
@@ -75,7 +89,11 @@ export class Business{{ControllerName}}Controller {
     async deactivate(@Param() params: CommonParamDto) {
         const business = await this.businessAccessService.validateAccess();
 
-        return this.business{{ControllerName}}Service.updateActiveStatus(params.id, business.id, false);
+        return this.business{{ControllerName}}Service.updateActiveStatus(
+            params.id,
+            business.id,
+            false,
+        );
     }
 
     @UseInterceptors(ClassSerializerInterceptor)
@@ -84,7 +102,8 @@ export class Business{{ControllerName}}Controller {
         const business = await this.businessAccessService.validateAccess();
 
         const record = await {{EntityName}}Entity.first(params.id);
-        if (record?.business_id !== business.id) throw new UnauthorizedException();
+        if (!OwnershipScope.forBusiness(business).owns(record))
+            throw new UnauthorizedException();
 
         return record.softDelete();
     }

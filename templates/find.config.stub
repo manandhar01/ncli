@@ -1,0 +1,13 @@
+import { FindConfigOptionsDto } from '../../common/dtos/find.config.options.dto';
+import { OwnershipScope } from '../../common/libraries/ownership.scope';
+import { {{EntityName}}Entity } from '../entities/{{entity_file}}.entity';
+
+export const {{name_camel}}FindConfig = (
+    scope: OwnershipScope,
+): FindConfigOptionsDto<{{EntityName}}Entity> => ({
+    searchableColumns: [],
+    orderBy: 'created_at',
+    orderDirection: 'DESC',
+    columns: [],
+    where: scope.where,
+});

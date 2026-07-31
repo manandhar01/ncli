@@ -1,3 +1,0 @@
-import { IdPayloadDto } from '../../common/dtos/id.payload.dto';
-
-export class AddUser{{DtoName}}Dto extends IdPayloadDto {}
