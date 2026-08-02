@@ -1,6 +1,6 @@
 [package]
 name = "ncli"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2024"
 description = "A helper CLI for managing and generating NestJS project resources."
 readme = "README.md"
